@@ -15,6 +15,15 @@ class LLMProvider(str, Enum):
     GROK = "grok"
 
 
+class Language(str, Enum):
+    """支持的语言"""
+
+    CHINESE = "zh"
+    ENGLISH = "en"
+    JAPANESE = "ja"
+    KOREAN = "ko"
+
+
 class Settings(BaseSettings):
     """应用配置
 

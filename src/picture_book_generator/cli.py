@@ -43,6 +43,18 @@ def generate(
         "-o",
         help="输出文件路径 (默认: ./output/<topic>.md)",
     ),
+    notebooklm: bool = typer.Option(
+        False,
+        "--notebooklm",
+        "-n",
+        help="生成后自动上传到NotebookLM并生成Slides",
+    ),
+    slides: bool = typer.Option(
+        False,
+        "--slides",
+        "-s",
+        help="生成Slides (需要配合 --notebooklm 使用)",
+    ),
 ):
     """根据主题生成儿童绘本
 
@@ -50,6 +62,7 @@ def generate(
         picture-book generate 恐龙
         picture-book generate "太空探险" --lang en --chapters 8
         picture-book generate 海洋生物 -l zh -c 6 -o my_book.md
+        picture-book generate 恐龙 --notebooklm --slides  # 生成并上传到NotebookLM，生成Slides
     """
     # 解析语言
     try:
@@ -98,6 +111,37 @@ def generate(
 
     output.write_text(book.to_markdown(), encoding="utf-8")
     console.print(f"\n[green]绘本已保存到: {output}[/green]")
+
+    # NotebookLM 集成
+    if notebooklm:
+        from .services.notebooklm import NotebookLMService
+
+        console.print("\n[blue]正在上传到NotebookLM...[/blue]")
+        notebooklm_service = NotebookLMService(settings)
+
+        try:
+            notebook_url = asyncio.run(
+                notebooklm_service.upload(book.to_markdown(), title=book.title)
+            )
+            console.print(f"[green]已上传到NotebookLM: {notebook_url}[/green]")
+
+            # 生成 Slides
+            if slides:
+                console.print("\n[blue]正在生成Slides...[/blue]")
+                slides_path = asyncio.run(
+                    notebooklm_service.generate_slides(
+                        notebook_url, download_dir=str(output.parent)
+                    )
+                )
+                console.print(f"[green]Slides已保存到: {slides_path}[/green]")
+
+        except ImportError as e:
+            console.print(f"[red]{e}[/red]")
+            console.print("请先安装NotebookLM依赖:")
+            console.print("  pip install picture-book-generator[notebooklm]")
+            console.print("  playwright install chromium")
+        except Exception as e:
+            console.print(f"[red]NotebookLM操作失败: {e}[/red]")
 
 
 @app.command()
@@ -179,6 +223,39 @@ def upload_to_notebooklm(
         raise typer.Exit(1)
     except Exception as e:
         console.print(f"[red]上传失败: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def generate_slides(
+    notebook_url: str = typer.Argument(..., help="NotebookLM笔记本URL"),
+    output_dir: str = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Slides下载目录 (默认: 当前目录)",
+    ),
+):
+    """从NotebookLM笔记本生成Slides
+
+    示例:
+        picture-book generate-slides https://notebooklm.google.com/notebook/xxx
+        picture-book generate-slides https://notebooklm.google.com/notebook/xxx -o ./slides
+    """
+    from .services.notebooklm import NotebookLMService
+
+    settings = get_settings()
+    service = NotebookLMService(settings)
+
+    try:
+        console.print("[blue]正在生成Slides...[/blue]")
+        slides_path = asyncio.run(service.generate_slides(notebook_url, output_dir))
+        console.print(f"[green]Slides已保存到: {slides_path}[/green]")
+    except ImportError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]生成Slides失败: {e}[/red]")
         raise typer.Exit(1)
 
 

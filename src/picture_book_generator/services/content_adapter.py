@@ -1,9 +1,6 @@
 """内容适配服务 - 将知识内容转化为适合儿童阅读的形式"""
 
-from anthropic import AsyncAnthropic
-
-from ..core.models import Language
-from ..utils.config import Settings
+from ..utils.config import Language, LLMProvider, Settings
 
 
 class ContentAdapterService:
@@ -15,11 +12,93 @@ class ContentAdapterService:
     - 添加趣味性元素
     - 结构化内容
     - 生成配图描述
+
+    支持的LLM提供商:
+    - Anthropic (Claude)
+    - OpenAI (ChatGPT)
+    - Google (Gemini)
+    - xAI (Grok)
     """
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+        self.provider = settings.default_llm_provider
+        self._client = None
+
+    def _get_client(self):
+        """延迟初始化LLM客户端"""
+        if self._client is not None:
+            return self._client
+
+        if self.provider == LLMProvider.ANTHROPIC:
+            from anthropic import AsyncAnthropic
+
+            self._client = AsyncAnthropic(api_key=self.settings.anthropic_api_key)
+
+        elif self.provider == LLMProvider.OPENAI:
+            from openai import AsyncOpenAI
+
+            self._client = AsyncOpenAI(
+                api_key=self.settings.openai_api_key,
+                base_url=self.settings.openai_base_url,
+            )
+
+        elif self.provider == LLMProvider.GEMINI:
+            import google.generativeai as genai
+
+            genai.configure(api_key=self.settings.google_api_key)
+            self._client = genai.GenerativeModel(self.settings.gemini_model)
+
+        elif self.provider == LLMProvider.GROK:
+            from openai import AsyncOpenAI
+
+            self._client = AsyncOpenAI(
+                api_key=self.settings.xai_api_key,
+                base_url=self.settings.xai_base_url,
+            )
+
+        else:
+            raise ValueError(f"不支持的LLM提供商: {self.provider}")
+
+        return self._client
+
+    async def _call_llm(self, prompt: str) -> str:
+        """调用LLM生成内容"""
+        client = self._get_client()
+
+        if self.provider == LLMProvider.ANTHROPIC:
+            response = await client.messages.create(
+                model=self.settings.anthropic_model,
+                max_tokens=self.settings.max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.content[0].text
+
+        elif self.provider in (LLMProvider.OPENAI, LLMProvider.GROK):
+            model = (
+                self.settings.openai_model
+                if self.provider == LLMProvider.OPENAI
+                else self.settings.grok_model
+            )
+            response = await client.chat.completions.create(
+                model=model,
+                max_tokens=self.settings.max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.choices[0].message.content
+
+        elif self.provider == LLMProvider.GEMINI:
+            # Gemini SDK 是同步的，需要在异步环境中运行
+            import asyncio
+
+            response = await asyncio.to_thread(
+                client.generate_content,
+                prompt,
+                generation_config={"max_output_tokens": self.settings.max_tokens},
+            )
+            return response.text
+
+        raise ValueError(f"不支持的LLM提供商: {self.provider}")
 
     async def adapt(
         self,
@@ -46,14 +125,7 @@ class ContentAdapterService:
 
         # 使用LLM适配内容
         prompt = self._build_adaptation_prompt(topic, raw_content, age_range, language)
-
-        response = await self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
-
-        adapted_text = response.content[0].text
+        adapted_text = await self._call_llm(prompt)
 
         return {
             "summary": adapted_text,
@@ -90,14 +162,10 @@ class ContentAdapterService:
 3. 建议的故事线或章节结构
 """
 
-        response = await self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        adapted_text = await self._call_llm(prompt)
 
         return {
-            "summary": response.content[0].text,
+            "summary": adapted_text,
             "sources": ["AI生成内容"],
             "original_content": "",
         }

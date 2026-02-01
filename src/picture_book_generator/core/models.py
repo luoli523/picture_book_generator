@@ -1,18 +1,10 @@
 """数据模型定义"""
 
-from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
-class Language(str, Enum):
-    """支持的语言"""
-
-    CHINESE = "zh"
-    ENGLISH = "en"
-    JAPANESE = "ja"
-    KOREAN = "ko"
+from ..utils.config import Language
 
 
 class BookConfig(BaseModel):

@@ -164,6 +164,124 @@ class NotebookLMService:
 
             return "播客生成中，请在NotebookLM中查看"
 
+    async def generate_slides(self, notebook_url: str, download_dir: str | None = None) -> str:
+        """生成Slides并下载
+
+        Args:
+            notebook_url: NotebookLM笔记本URL
+            download_dir: 下载目录，默认为当前目录
+
+        Returns:
+            下载的文件路径
+        """
+        self._check_playwright()
+
+        download_path = Path(download_dir) if download_dir else Path.cwd()
+        download_path.mkdir(parents=True, exist_ok=True)
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch_persistent_context(
+                self.user_data_dir,
+                headless=False,
+                args=["--disable-blink-features=AutomationControlled"],
+                accept_downloads=True,
+            )
+            page = await browser.new_page()
+            await page.goto(notebook_url)
+            await page.wait_for_load_state("networkidle")
+
+            print("正在生成Slides...")
+
+            # 点击"Notebook guide"或展开面板
+            # NotebookLM的UI: 右侧有 Audio Overview, Briefing Doc, Study Guide, Timeline 等选项
+            # Slides/演示文稿选项通常在这个区域
+
+            # 等待页面完全加载
+            await page.wait_for_timeout(3000)
+
+            # 尝试找到并点击 Slides/演示文稿 按钮
+            slides_selectors = [
+                'button:has-text("Slides")',
+                'button:has-text("演示文稿")',
+                'button:has-text("Presentation")',
+                '[aria-label*="Slides"]',
+                '[aria-label*="slides"]',
+            ]
+
+            clicked = False
+            for selector in slides_selectors:
+                btn = page.locator(selector)
+                if await btn.count() > 0:
+                    await btn.first.click()
+                    clicked = True
+                    print(f"点击了: {selector}")
+                    break
+
+            if not clicked:
+                # 如果没找到直接的按钮，可能需要先展开菜单
+                # 尝试点击 "Create" 或 "+" 按钮
+                create_selectors = [
+                    'button:has-text("Create")',
+                    'button:has-text("创建")',
+                    'button[aria-label*="Create"]',
+                    'button:has-text("Generate")',
+                ]
+                for selector in create_selectors:
+                    btn = page.locator(selector)
+                    if await btn.count() > 0:
+                        await btn.first.click()
+                        await page.wait_for_timeout(1000)
+                        # 再次尝试点击 Slides
+                        for slides_selector in slides_selectors:
+                            slides_btn = page.locator(slides_selector)
+                            if await slides_btn.count() > 0:
+                                await slides_btn.first.click()
+                                clicked = True
+                                break
+                        if clicked:
+                            break
+
+            if not clicked:
+                print("未找到Slides按钮，请手动操作浏览器生成Slides")
+                print("完成后按Enter继续...")
+                input()
+
+            # 等待生成完成
+            print("等待Slides生成...")
+            await page.wait_for_timeout(10000)
+
+            # 尝试下载
+            download_selectors = [
+                'button:has-text("Download")',
+                'button:has-text("下载")',
+                'button:has-text("Export")',
+                'button:has-text("导出")',
+                '[aria-label*="Download"]',
+                '[aria-label*="download"]',
+            ]
+
+            downloaded_file = None
+            for selector in download_selectors:
+                btn = page.locator(selector)
+                if await btn.count() > 0:
+                    # 等待下载
+                    async with page.expect_download() as download_info:
+                        await btn.first.click()
+                    download = await download_info.value
+                    downloaded_file = download_path / download.suggested_filename
+                    await download.save_as(str(downloaded_file))
+                    print(f"已下载: {downloaded_file}")
+                    break
+
+            if not downloaded_file:
+                print("未能自动下载，请手动下载文件")
+                print("完成后按Enter继续...")
+                input()
+
+            await browser.close()
+
+            return str(downloaded_file) if downloaded_file else "请手动在NotebookLM中下载"
+
     async def generate_mindmap(self, notebook_url: str) -> str:
         """生成思维导图
 

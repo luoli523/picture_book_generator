@@ -15,12 +15,14 @@
 
 ### 基础安装
 
+> **注意**: `.venv` 虚拟环境目录不包含在代码库中，需要自己创建。
+
 ```bash
 # 克隆项目
 git clone <repo-url>
 cd picture_book_generator
 
-# 创建虚拟环境
+# 创建虚拟环境（首次运行必须）
 python -m venv .venv
 source .venv/bin/activate  # Linux/macOS
 # 或 .venv\Scripts\activate  # Windows
@@ -132,6 +134,12 @@ picture-book notebooklm-login
 
 # 上传绘本到NotebookLM
 picture-book upload-to-notebooklm ./output/恐龙.md
+
+# 一键生成绘本 + 上传 + 生成Slides
+picture-book generate 恐龙 --notebooklm --slides
+
+# 从已有NotebookLM笔记本生成Slides
+picture-book generate-slides https://notebooklm.google.com/notebook/xxx
 ```
 
 ### Python API
@@ -204,10 +212,12 @@ picture_book_generator/
 | 命令 | 说明 |
 |------|------|
 | `picture-book generate <主题>` | 生成绘本 |
+| `picture-book generate <主题> -n -s` | 生成绘本并上传NotebookLM生成Slides |
 | `picture-book languages` | 列出支持的语言 |
 | `picture-book version` | 显示版本 |
 | `picture-book notebooklm-login` | 登录NotebookLM |
 | `picture-book upload-to-notebooklm <文件>` | 上传到NotebookLM |
+| `picture-book generate-slides <URL>` | 从NotebookLM笔记本生成Slides |
 
 ## 开发
 
