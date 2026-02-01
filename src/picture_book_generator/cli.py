@@ -1,0 +1,186 @@
+"""命令行接口"""
+
+import asyncio
+from pathlib import Path
+
+import typer
+from rich.console import Console
+from rich.panel import Panel
+
+from .core.generator import PictureBookGenerator
+from .core.models import BookConfig, Language
+from .utils.config import get_settings
+
+app = typer.Typer(
+    name="picture-book",
+    help="儿童绘本自动生成工具 - 根据主题自动搜索知识并生成适合7-10岁儿童的绘本",
+)
+console = Console()
+
+
+@app.command()
+def generate(
+    topic: str = typer.Argument(..., help="绘本主题，如：恐龙、太空、海洋生物"),
+    language: str = typer.Option(
+        "zh",
+        "--lang",
+        "-l",
+        help="目标语言: zh(中文), en(英文), ja(日文), ko(韩文)",
+    ),
+    chapters: int = typer.Option(
+        5,
+        "--chapters",
+        "-c",
+        help="章节数量 (3-10)",
+        min=3,
+        max=10,
+    ),
+    min_age: int = typer.Option(7, "--min-age", help="最小目标年龄"),
+    max_age: int = typer.Option(10, "--max-age", help="最大目标年龄"),
+    output: str = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="输出文件路径 (默认: ./output/<topic>.md)",
+    ),
+):
+    """根据主题生成儿童绘本
+
+    示例:
+        picture-book generate 恐龙
+        picture-book generate "太空探险" --lang en --chapters 8
+        picture-book generate 海洋生物 -l zh -c 6 -o my_book.md
+    """
+    # 解析语言
+    try:
+        lang = Language(language)
+    except ValueError:
+        console.print(f"[red]不支持的语言: {language}[/red]")
+        console.print("支持的语言: zh, en, ja, ko")
+        raise typer.Exit(1)
+
+    # 创建配置
+    config = BookConfig(
+        topic=topic,
+        language=lang,
+        age_range=(min_age, max_age),
+        chapter_count=chapters,
+    )
+
+    console.print(
+        Panel(
+            f"[bold]主题:[/bold] {topic}\n"
+            f"[bold]语言:[/bold] {lang.value}\n"
+            f"[bold]目标年龄:[/bold] {min_age}-{max_age}岁\n"
+            f"[bold]章节数:[/bold] {chapters}",
+            title="绘本生成配置",
+            border_style="blue",
+        )
+    )
+
+    # 生成绘本
+    settings = get_settings()
+    generator = PictureBookGenerator(settings)
+
+    try:
+        book = asyncio.run(generator.generate(config))
+    except Exception as e:
+        console.print(f"[red]生成失败: {e}[/red]")
+        raise typer.Exit(1)
+
+    # 保存输出
+    if output is None:
+        output_dir = Path(settings.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output = output_dir / f"{topic}.md"
+    else:
+        output = Path(output)
+
+    output.write_text(book.to_markdown(), encoding="utf-8")
+    console.print(f"\n[green]绘本已保存到: {output}[/green]")
+
+
+@app.command()
+def languages():
+    """列出支持的语言"""
+    console.print("\n[bold]支持的语言:[/bold]\n")
+    for lang in Language:
+        names = {
+            "zh": "中文 (Chinese)",
+            "en": "英文 (English)",
+            "ja": "日文 (Japanese)",
+            "ko": "韩文 (Korean)",
+        }
+        console.print(f"  {lang.value}: {names.get(lang.value, lang.value)}")
+    console.print()
+
+
+@app.command()
+def version():
+    """显示版本信息"""
+    from . import __version__
+
+    console.print(f"picture-book-generator v{__version__}")
+
+
+@app.command()
+def notebooklm_login():
+    """登录NotebookLM (首次使用前需要执行)
+
+    会打开浏览器让你登录Google账号，登录状态会被保存用于后续上传。
+
+    使用前请确保已安装依赖:
+        pip install picture-book-generator[notebooklm]
+        playwright install chromium
+    """
+    from .services.notebooklm import NotebookLMService
+
+    settings = get_settings()
+    service = NotebookLMService(settings)
+
+    try:
+        asyncio.run(service.login())
+        console.print("[green]登录成功![/green]")
+    except ImportError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]登录失败: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def upload_to_notebooklm(
+    file_path: str = typer.Argument(..., help="要上传的Markdown文件路径"),
+):
+    """上传绘本到NotebookLM
+
+    示例:
+        picture-book upload-to-notebooklm ./output/恐龙.md
+    """
+    from .services.notebooklm import NotebookLMService
+
+    path = Path(file_path)
+    if not path.exists():
+        console.print(f"[red]文件不存在: {file_path}[/red]")
+        raise typer.Exit(1)
+
+    content = path.read_text(encoding="utf-8")
+    settings = get_settings()
+    service = NotebookLMService(settings)
+
+    try:
+        console.print("正在上传到NotebookLM...")
+        url = asyncio.run(service.upload(content, title=path.stem))
+        console.print(f"[green]上传成功![/green]")
+        console.print(f"笔记本链接: {url}")
+    except ImportError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]上传失败: {e}[/red]")
+        raise typer.Exit(1)
+
+
+if __name__ == "__main__":
+    app()
