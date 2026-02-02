@@ -22,10 +22,10 @@ console = Console()
 def generate(
     topic: str = typer.Argument(..., help="绘本主题，如：恐龙、太空、海洋生物"),
     language: str = typer.Option(
-        "zh",
+        "en",
         "--lang",
         "-l",
-        help="目标语言: zh(中文), en(英文), ja(日文), ko(韩文)",
+        help="目标语言: en(英文), zh(中文), ja(日文), ko(韩文)",
     ),
     chapters: int = typer.Option(
         5,

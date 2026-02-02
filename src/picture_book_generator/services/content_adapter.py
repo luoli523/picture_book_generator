@@ -1,5 +1,6 @@
 """内容适配服务 - 将知识内容转化为适合儿童阅读的形式"""
 
+from ..prompts import render_prompt
 from ..utils.config import Language, LLMProvider, Settings
 
 
@@ -20,10 +21,22 @@ class ContentAdapterService:
     - xAI (Grok)
     """
 
+    # 语言名称映射
+    LANGUAGE_NAMES = {
+        Language.CHINESE: "中文",
+        Language.ENGLISH: "English",
+        Language.JAPANESE: "日本語",
+        Language.KOREAN: "한국어",
+    }
+
     def __init__(self, settings: Settings):
         self.settings = settings
         self.provider = settings.default_llm_provider
         self._client = None
+
+    def _get_language_name(self, language: Language) -> str:
+        """获取语言的显示名称"""
+        return self.LANGUAGE_NAMES.get(language, "English")
 
     def _get_client(self):
         """延迟初始化LLM客户端"""
@@ -82,7 +95,7 @@ class ContentAdapterService:
             )
             response = await client.chat.completions.create(
                 model=model,
-                max_tokens=self.settings.max_tokens,
+                max_completion_tokens=self.settings.max_tokens,
                 messages=[{"role": "user", "content": prompt}],
             )
             return response.choices[0].message.content
@@ -140,33 +153,19 @@ class ContentAdapterService:
         language: Language,
     ) -> dict:
         """从零开始生成内容"""
-        language_name = {
-            Language.CHINESE: "中文",
-            Language.ENGLISH: "English",
-            Language.JAPANESE: "日本語",
-            Language.KOREAN: "한국어",
-        }.get(language, "中文")
-
-        prompt = f"""你是一位专业的儿童教育内容创作者。请为{age_range[0]}-{age_range[1]}岁的儿童创作关于「{topic}」的教育内容。
-
-要求:
-1. 使用{language_name}撰写
-2. 语言简单易懂，适合目标年龄段
-3. 内容有趣生动，能吸引儿童注意力
-4. 包含科学准确的知识点
-5. 适合制作成绘本的形式
-
-请生成:
-1. 主题简介 (2-3句话)
-2. 5-8个有趣的知识要点
-3. 建议的故事线或章节结构
-"""
+        prompt = render_prompt(
+            "generate_from_scratch",
+            topic=topic,
+            min_age=age_range[0],
+            max_age=age_range[1],
+            language_name=self._get_language_name(language),
+        )
 
         adapted_text = await self._call_llm(prompt)
 
         return {
             "summary": adapted_text,
-            "sources": ["AI生成内容"],
+            "sources": ["AI generated content"],
             "original_content": "",
         }
 
@@ -178,28 +177,161 @@ class ContentAdapterService:
         language: Language,
     ) -> str:
         """构建内容适配提示词"""
-        language_name = {
-            Language.CHINESE: "中文",
-            Language.ENGLISH: "English",
-            Language.JAPANESE: "日本語",
-            Language.KOREAN: "한국어",
-        }.get(language, "中文")
+        return render_prompt(
+            "adapt_content",
+            topic=topic,
+            raw_content=raw_content,
+            min_age=age_range[0],
+            max_age=age_range[1],
+            language_name=self._get_language_name(language),
+        )
 
-        return f"""你是一位专业的儿童教育内容创作者。请将以下关于「{topic}」的内容改写为适合{age_range[0]}-{age_range[1]}岁儿童阅读的版本。
+    async def generate_book_structure(
+        self,
+        topic: str,
+        language: Language,
+        age_range: tuple[int, int],
+        chapter_count: int,
+        adapted_content: str,
+    ) -> dict:
+        """生成绘本结构（标题、简介、章节大纲）
 
-原始内容:
-{raw_content}
+        一次LLM调用生成完整的绘本框架
 
-要求:
-1. 使用{language_name}撰写
-2. 语言简单易懂，避免专业术语
-3. 添加趣味性元素，如比喻、拟人等
-4. 保持科学准确性
-5. 适合制作成绘本的形式
-6. 提炼出5-8个核心知识要点
+        Args:
+            topic: 主题
+            language: 目标语言
+            age_range: 目标年龄范围
+            chapter_count: 章节数量
+            adapted_content: 适配后的知识内容
 
-请输出:
-1. 适合儿童的内容概述
-2. 关键知识要点列表
-3. 建议的章节结构
-"""
+        Returns:
+            包含 title, summary, chapters 的字典
+        """
+        prompt = render_prompt(
+            "book_structure",
+            topic=topic,
+            min_age=age_range[0],
+            max_age=age_range[1],
+            language_name=self._get_language_name(language),
+            chapter_count=chapter_count,
+            adapted_content=adapted_content[:2000],
+        )
+        response = await self._call_llm(prompt)
+
+        # 解析JSON响应
+        import json
+        import re
+
+        json_match = re.search(r'\{[^{}]*\}', response, re.DOTALL)
+        if json_match:
+            try:
+                result = json.loads(json_match.group())
+                # 确保章节数量正确
+                chapters = result.get("chapters", [])
+                if len(chapters) < chapter_count:
+                    chapters.extend([f"第{i+1}章" for i in range(len(chapters), chapter_count)])
+                return {
+                    "title": result.get("title", f"探索{topic}的奇妙世界"),
+                    "summary": result.get("summary", ""),
+                    "chapters": chapters[:chapter_count],
+                }
+            except json.JSONDecodeError:
+                pass
+
+        # 解析失败时返回默认值
+        return {
+            "title": f"探索{topic}的奇妙世界",
+            "summary": f"一本为{age_range[0]}-{age_range[1]}岁儿童准备的关于{topic}的趣味绘本。",
+            "chapters": [f"第{i+1}章" for i in range(chapter_count)],
+        }
+
+    async def generate_all_chapters(
+        self,
+        topic: str,
+        chapter_titles: list[str],
+        language: Language,
+        age_range: tuple[int, int],
+        adapted_content: str,
+        include_illustration: bool = True,
+    ) -> list[dict]:
+        """一次性生成所有章节内容
+
+        一次LLM调用生成所有章节的详细内容
+
+        Args:
+            topic: 绘本主题
+            chapter_titles: 章节标题列表
+            language: 目标语言
+            age_range: 目标年龄范围
+            adapted_content: 适配后的知识内容
+            include_illustration: 是否生成插图描述
+
+        Returns:
+            章节内容列表
+        """
+        chapter_count = len(chapter_titles)
+        chapters_str = "\n".join([f"{i+1}. {title}" for i, title in enumerate(chapter_titles)])
+
+        illustration_field = ""
+        illustration_instruction = ""
+        if include_illustration:
+            illustration_field = ',\n            "illustration_prompt": "English illustration description, 50-100 words"'
+            illustration_instruction = "\n5. Provide English illustration descriptions for each chapter, suitable for AI image generation, including scene, characters, style, etc."
+
+        prompt = render_prompt(
+            "all_chapters",
+            topic=topic,
+            min_age=age_range[0],
+            max_age=age_range[1],
+            language_name=self._get_language_name(language),
+            chapters_str=chapters_str,
+            adapted_content=adapted_content[:2500],
+            illustration_instruction=illustration_instruction,
+            illustration_field=illustration_field,
+        )
+        response = await self._call_llm(prompt)
+
+        # 解析JSON响应
+        import json
+        import re
+
+        # 尝试匹配完整的JSON对象（包含嵌套）
+        try:
+            # 找到第一个 { 和最后一个 }
+            start = response.find('{')
+            end = response.rfind('}')
+            if start != -1 and end != -1:
+                json_str = response[start:end + 1]
+                result = json.loads(json_str)
+                chapters = result.get("chapters", [])
+
+                # 确保返回正确数量的章节
+                parsed_chapters = []
+                for i in range(chapter_count):
+                    if i < len(chapters):
+                        ch = chapters[i]
+                        parsed_chapters.append({
+                            "content": ch.get("content", ""),
+                            "knowledge_points": ch.get("knowledge_points", []),
+                            "illustration_prompt": ch.get("illustration_prompt") if include_illustration else None,
+                        })
+                    else:
+                        parsed_chapters.append({
+                            "content": f"这是关于{topic}的精彩内容。",
+                            "knowledge_points": [],
+                            "illustration_prompt": None,
+                        })
+                return parsed_chapters
+        except json.JSONDecodeError:
+            pass
+
+        # 解析失败时返回默认值
+        return [
+            {
+                "content": f"这是关于{topic}的第{i+1}章内容。",
+                "knowledge_points": [],
+                "illustration_prompt": None,
+            }
+            for i in range(chapter_count)
+        ]
