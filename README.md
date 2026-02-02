@@ -234,35 +234,6 @@ python3 download_slides.py list                    # 列出所有笔记本
 python3 download_slides.py <notebook_id>          # 下载指定笔记本的 Slides
 ```
 
-### Python API
-
-```python
-import asyncio
-from picture_book_generator.core import PictureBookGenerator, BookConfig
-from picture_book_generator.core.models import Language
-
-async def main():
-    # 默认英文配置
-    config = BookConfig(
-        topic="dinosaur",
-        language=Language.ENGLISH,  # 默认值，可省略
-        age_range=(7, 10),
-        chapter_count=5,
-    )
-
-    generator = PictureBookGenerator()
-    book = await generator.generate(config)
-
-    # 导出为Markdown
-    print(book.to_markdown())
-
-    # 保存到文件
-    with open("dinosaur_book.md", "w", encoding="utf-8") as f:
-        f.write(book.to_markdown())
-
-asyncio.run(main())
-```
-
 ## 💡 使用示例和最佳实践
 
 ### 示例 1：基础使用
