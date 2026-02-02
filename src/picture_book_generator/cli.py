@@ -13,7 +13,17 @@ from .utils.config import get_settings
 
 app = typer.Typer(
     name="picture-book",
-    help="儿童绘本自动生成工具 - 根据主题自动搜索知识并生成适合7-10岁儿童的绘本",
+    help="""儿童绘本自动生成工具 - 根据主题自动搜索知识并生成适合7-10岁儿童的绘本
+
+快速开始:
+  picture-book generate ocean                    # 生成英文绘本
+  picture-book generate 恐龙 --lang zh           # 生成中文绘本
+  picture-book generate dinosaur --nlm-slides   # 生成绘本 + NotebookLM Slides
+  
+更多示例:
+  picture-book generate --help                   # 查看所有参数
+  picture-book languages                         # 查看支持的语言
+""",
 )
 console = Console()
 
