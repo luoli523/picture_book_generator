@@ -17,28 +17,44 @@
 
 > **注意**: `.venv` 虚拟环境目录不包含在代码库中，需要自己创建。
 
+### 方式一：一键安装脚本（推荐）
+
 ```bash
 # 克隆项目
 git clone <repo-url>
 cd picture_book_generator
 
-# 创建虚拟环境（首次运行必须）
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# 或 .venv\Scripts\activate  # Windows
+# 运行安装脚本
+./install.sh
+```
+
+安装脚本会自动：
+- ✓ 检查 Python 环境（需要 Python 3.10+）
+- ✓ 创建虚拟环境（可选）
+- ✓ 安装依赖包
+- ✓ 创建 .env 配置文件
+- ✓ 验证安装
+
+### 方式二：手动安装
+
+```bash
+# 克隆项目
+git clone <repo-url>
+cd picture_book_generator
+
+# 创建虚拟环境（推荐）
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# 或 venv\Scripts\activate  # Windows
 
 # 安装基础依赖
 pip install -e .
-```
 
-### 可选依赖
-
-```bash
-# 开发依赖 (测试、代码检查)
-pip install -e ".[dev]"
-
-# NotebookLM集成
+# （可选）安装 NotebookLM 集成
 pip install -e ".[notebooklm]"
+
+# （可选）安装开发依赖
+pip install -e ".[dev]"
 ```
 
 ## 配置
