@@ -43,17 +43,11 @@ def generate(
         "-o",
         help="输出文件路径 (默认: ./output/<topic>.md)",
     ),
-    notebooklm: bool = typer.Option(
-        False,
-        "--notebooklm",
-        "-n",
-        help="生成后自动上传到NotebookLM并生成Slides",
-    ),
     slides: bool = typer.Option(
         False,
         "--slides",
         "-s",
-        help="生成Slides (需要配合 --notebooklm 使用)",
+        help="生成Slides: 检查是否存在绘本文件，不存在则生成，然后上传到NotebookLM并生成Slides PDF",
     ),
 ):
     """根据主题生成儿童绘本
@@ -62,7 +56,7 @@ def generate(
         picture-book generate 恐龙
         picture-book generate "太空探险" --lang en --chapters 8
         picture-book generate 海洋生物 -l zh -c 6 -o my_book.md
-        picture-book generate 恐龙 --notebooklm --slides  # 生成并上传到NotebookLM，生成Slides
+        picture-book generate 恐龙 --slides  # 生成绘本并创建Slides
     """
     # 解析语言
     try:
@@ -91,49 +85,60 @@ def generate(
         )
     )
 
-    # 生成绘本
     settings = get_settings()
-    generator = PictureBookGenerator(settings)
 
-    try:
-        book = asyncio.run(generator.generate(config))
-    except Exception as e:
-        console.print(f"[red]生成失败: {e}[/red]")
-        raise typer.Exit(1)
-
-    # 保存输出
+    # 确定输出路径
     if output is None:
         output_dir = Path(settings.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        output = output_dir / f"{topic}.md"
+        output_path = output_dir / f"{topic}.md"
     else:
-        output = Path(output)
+        output_path = Path(output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    output.write_text(book.to_markdown(), encoding="utf-8")
-    console.print(f"\n[green]绘本已保存到: {output}[/green]")
-
-    # NotebookLM 集成
-    if notebooklm:
+    # Slides 模式：检查文件是否存在，不存在则生成
+    if slides:
         from .services.notebooklm import NotebookLMService
 
+        # 检查绘本文件是否存在
+        if output_path.exists():
+            console.print(f"[cyan]找到已存在的绘本: {output_path}[/cyan]")
+            markdown_content = output_path.read_text(encoding="utf-8")
+            book_title = topic  # 从文件名提取标题
+        else:
+            # 文件不存在，生成绘本
+            console.print(f"[cyan]绘本不存在，开始生成...[/cyan]")
+            generator = PictureBookGenerator(settings)
+            try:
+                book = asyncio.run(generator.generate(config))
+            except Exception as e:
+                console.print(f"[red]生成失败: {e}[/red]")
+                raise typer.Exit(1)
+
+            # 保存绘本
+            markdown_content = book.to_markdown()
+            output_path.write_text(markdown_content, encoding="utf-8")
+            console.print(f"[green]绘本已保存到: {output_path}[/green]")
+            book_title = book.title
+
+        # 上传到 NotebookLM 并生成 Slides
         console.print("\n[blue]正在上传到NotebookLM...[/blue]")
         notebooklm_service = NotebookLMService(settings)
 
         try:
             notebook_url = asyncio.run(
-                notebooklm_service.upload(book.to_markdown(), title=book.title)
+                notebooklm_service.upload(markdown_content, title=book_title)
             )
             console.print(f"[green]已上传到NotebookLM: {notebook_url}[/green]")
 
             # 生成 Slides
-            if slides:
-                console.print("\n[blue]正在生成Slides...[/blue]")
-                slides_path = asyncio.run(
-                    notebooklm_service.generate_slides(
-                        notebook_url, download_dir=str(output.parent)
-                    )
+            console.print("\n[blue]正在生成Slides...[/blue]")
+            slides_path = asyncio.run(
+                notebooklm_service.generate_slides(
+                    notebook_url, download_dir=str(output_path.parent)
                 )
-                console.print(f"[green]Slides已保存到: {slides_path}[/green]")
+            )
+            console.print(f"[green]Slides已保存到: {slides_path}[/green]")
 
         except ImportError as e:
             console.print(f"[red]{e}[/red]")
@@ -142,6 +147,20 @@ def generate(
             console.print("  playwright install chromium")
         except Exception as e:
             console.print(f"[red]NotebookLM操作失败: {e}[/red]")
+            raise typer.Exit(1)
+
+    else:
+        # 正常模式：生成绘本
+        generator = PictureBookGenerator(settings)
+        try:
+            book = asyncio.run(generator.generate(config))
+        except Exception as e:
+            console.print(f"[red]生成失败: {e}[/red]")
+            raise typer.Exit(1)
+
+        # 保存输出
+        output_path.write_text(book.to_markdown(), encoding="utf-8")
+        console.print(f"\n[green]绘本已保存到: {output_path}[/green]")
 
 
 @app.command()

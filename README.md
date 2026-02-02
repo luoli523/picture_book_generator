@@ -105,15 +105,15 @@ SERP_API_KEY=xxxxx
 ### 命令行
 
 ```bash
-# 基本用法 - 生成中文绘本
-picture-book generate 恐龙
+# 基本用法 - 生成英文绘本（默认）
+picture-book generate dinosaur
 
-# 指定语言
-picture-book generate "Space Exploration" --lang en
+# 生成中文绘本
+picture-book generate 恐龙 --lang zh
 
 # 自定义参数
-picture-book generate 海洋生物 \
-    --lang zh \
+picture-book generate ocean \
+    --lang en \
     --chapters 8 \
     --min-age 6 \
     --max-age 9 \
@@ -126,17 +126,21 @@ picture-book languages
 picture-book version
 ```
 
-### NotebookLM 集成
+### NotebookLM 集成与 Slides 生成
 
 ```bash
 # 首次使用：登录Google账号 (会打开浏览器)
 picture-book notebooklm-login
 
-# 上传绘本到NotebookLM
-picture-book upload-to-notebooklm ./output/恐龙.md
+# 生成Slides（智能模式）：
+# - 检查绘本文件是否存在
+# - 不存在则自动生成
+# - 上传到NotebookLM
+# - 生成Slides并下载到output目录
+picture-book generate dinosaur --slides
 
-# 一键生成绘本 + 上传 + 生成Slides
-picture-book generate 恐龙 --notebooklm --slides
+# 手动上传已有绘本到NotebookLM
+picture-book upload-to-notebooklm ./output/dinosaur.md
 
 # 从已有NotebookLM笔记本生成Slides
 picture-book generate-slides https://notebooklm.google.com/notebook/xxx
@@ -150,9 +154,10 @@ from picture_book_generator.core import PictureBookGenerator, BookConfig
 from picture_book_generator.core.models import Language
 
 async def main():
+    # 默认英文配置
     config = BookConfig(
-        topic="恐龙",
-        language=Language.CHINESE,
+        topic="dinosaur",
+        language=Language.ENGLISH,  # 默认值，可省略
         age_range=(7, 10),
         chapter_count=5,
     )
@@ -211,12 +216,13 @@ picture_book_generator/
 
 | 命令 | 说明 |
 |------|------|
-| `picture-book generate <主题>` | 生成绘本 |
-| `picture-book generate <主题> -n -s` | 生成绘本并上传NotebookLM生成Slides |
+| `picture-book generate <主题>` | 生成绘本（默认英文，5章，7-10岁） |
+| `picture-book generate <主题> --slides` | 智能Slides生成：检查绘本→生成(如需)→上传→下载Slides |
+| `picture-book generate <主题> --lang zh` | 生成中文绘本 |
 | `picture-book languages` | 列出支持的语言 |
 | `picture-book version` | 显示版本 |
-| `picture-book notebooklm-login` | 登录NotebookLM |
-| `picture-book upload-to-notebooklm <文件>` | 上传到NotebookLM |
+| `picture-book notebooklm-login` | 登录NotebookLM（首次使用） |
+| `picture-book upload-to-notebooklm <文件>` | 手动上传文件到NotebookLM |
 | `picture-book generate-slides <URL>` | 从NotebookLM笔记本生成Slides |
 
 ## 开发
