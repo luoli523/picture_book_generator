@@ -67,10 +67,29 @@ def generate(
     """根据主题生成儿童绘本
 
     示例:
-        picture-book generate 恐龙
-        picture-book generate "太空探险" --lang en --chapters 8
-        picture-book generate 海洋生物 -l zh -c 6 -o my_book.md
-        picture-book generate 恐龙 --nlm-slides  # 生成绘本并创建NotebookLM Slides
+        # 基础用法
+        picture-book generate ocean
+        
+        # 中文绘本
+        picture-book generate 恐龙 --lang zh
+        
+        # 自定义章节和年龄
+        picture-book generate space --lang en --chapters 8 --min-age 8 --max-age 12
+        
+        # 生成绘本并创建 NotebookLM Slides
+        picture-book generate dinosaur --nlm-slides
+        
+        # 完整参数示例（所有选项）
+        picture-book generate ocean \\
+            --lang en \\
+            --chapters 6 \\
+            --min-age 7 \\
+            --max-age 10 \\
+            --output ./my_books/ocean_adventure.md \\
+            --nlm-slides \\
+            --nlm-instructions "创建色彩鲜艳的卡通风格演示文稿，适合小学生课堂展示" \\
+            --nlm-format detailed \\
+            --nlm-length default
     """
     # 解析语言
     try:
