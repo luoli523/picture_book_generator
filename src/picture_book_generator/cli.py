@@ -16,9 +16,9 @@ app = typer.Typer(
     help="""儿童绘本自动生成工具 - 根据主题自动搜索知识并生成适合7-10岁儿童的绘本
 
 快速开始:
-  picture-book generate ocean                    # 生成英文绘本
-  picture-book generate 恐龙 --lang zh           # 生成中文绘本
-  picture-book generate dinosaur --nlm-slides   # 生成绘本 + NotebookLM Slides
+  picture-book generate ocean                    # 生成英文绘本 + Slides（默认）
+  picture-book generate 恐龙 --lang zh           # 生成中文绘本 + Slides
+  picture-book generate space --no-nlm-slides   # 仅生成绘本，不生成 Slides
   
 更多示例:
   picture-book generate --help                   # 查看所有参数
@@ -54,9 +54,9 @@ def generate(
         help="输出文件路径 (默认: ./output/<topic>.md)",
     ),
     nlm_slides: bool = typer.Option(
-        False,
-        "--nlm-slides",
-        help="生成NotebookLM Slides: 检查是否存在绘本文件，不存在则生成，然后上传到NotebookLM并生成Slides PDF",
+        True,
+        "--nlm-slides/--no-nlm-slides",
+        help="生成NotebookLM Slides（默认启用）。使用 --no-nlm-slides 跳过",
     ),
     nlm_instructions: str = typer.Option(
         None,
@@ -74,20 +74,20 @@ def generate(
         help="Slides 长度: short(短) 或 default(默认)",
     ),
 ):
-    """根据主题生成儿童绘本
+    """根据主题生成儿童绘本（默认包含 NotebookLM Slides）
 
     示例:
-        # 基础用法
+        # 基础用法（自动生成绘本 + Slides）
         picture-book generate ocean
         
-        # 中文绘本
+        # 中文绘本 + Slides
         picture-book generate 恐龙 --lang zh
+        
+        # 仅生成绘本，不生成 Slides
+        picture-book generate space --no-nlm-slides
         
         # 自定义章节和年龄
         picture-book generate space --lang en --chapters 8 --min-age 8 --max-age 12
-        
-        # 生成绘本并创建 NotebookLM Slides
-        picture-book generate dinosaur --nlm-slides
         
         # 完整参数示例（所有选项）
         picture-book generate ocean \\
@@ -96,7 +96,6 @@ def generate(
             --min-age 7 \\
             --max-age 10 \\
             --output ./my_books/ocean_adventure.md \\
-            --nlm-slides \\
             --nlm-instructions "创建色彩鲜艳的卡通风格演示文稿，适合小学生课堂展示" \\
             --nlm-format detailed \\
             --nlm-length default
@@ -147,7 +146,7 @@ def generate(
         if output_path.exists():
             console.print(f"[cyan]找到已存在的绘本: {output_path}[/cyan]")
             markdown_content = output_path.read_text(encoding="utf-8")
-            book_title = topic  # 从文件名提取标题
+            book_title = output_path.name  # 使用文件名（包含 .md 后缀）
         else:
             # 文件不存在，生成绘本
             console.print(f"[cyan]绘本不存在，开始生成...[/cyan]")
@@ -162,12 +161,14 @@ def generate(
             markdown_content = book.to_markdown()
             output_path.write_text(markdown_content, encoding="utf-8")
             console.print(f"[green]绘本已保存到: {output_path}[/green]")
-            book_title = book.title
+            book_title = output_path.name  # 使用文件名（包含 .md 后缀）
 
         # 上传到 NotebookLM 并生成 Slides
-        notebooklm_service = NotebookLMService(settings)
-
+        console.print(f"\n[cyan]开始生成 NotebookLM Slides...[/cyan]")
+        
         try:
+            notebooklm_service = NotebookLMService(settings)
+            
             # 准备语言参数
             slides_language = "zh" if lang == Language.CHINESE else lang.value
 
@@ -183,18 +184,18 @@ def generate(
                     slide_length=nlm_length,
                 )
             )
-            console.print(f"\n[green]✓ Slides已保存到: {slides_path}[/green]")
+            console.print(f"\n[green]✓ Slides 已保存到: {slides_path}[/green]")
 
         except ImportError as e:
-            console.print(f"\n[red]{e}[/red]")
+            console.print(f"\n[yellow]⚠ NotebookLM 功能未安装，跳过 Slides 生成[/yellow]")
+            console.print(f"[dim]提示: 运行 'pip install -e \".[notebooklm]\"' 安装相关依赖[/dim]")
         except Exception as e:
-            console.print(f"\n[red]NotebookLM操作失败: {e}[/red]")
-            import traceback
-            console.print(f"[dim]{traceback.format_exc()}[/dim]")
-            raise typer.Exit(1)
+            console.print(f"\n[yellow]⚠ NotebookLM Slides 生成失败，已跳过[/yellow]")
+            console.print(f"[dim]原因: {e}[/dim]")
+            console.print(f"[dim]提示: 检查网络连接或运行 'notebooklm login' 登录[/dim]")
 
     else:
-        # 正常模式：生成绘本
+        # 仅生成绘本模式（不生成 Slides）
         generator = PictureBookGenerator(settings)
         try:
             book = asyncio.run(generator.generate(config))
@@ -205,6 +206,7 @@ def generate(
         # 保存输出
         output_path.write_text(book.to_markdown(), encoding="utf-8")
         console.print(f"\n[green]绘本已保存到: {output_path}[/green]")
+        console.print(f"[dim]提示: 使用 --nlm-slides 可生成 NotebookLM Slides[/dim]")
 
 
 @app.command()

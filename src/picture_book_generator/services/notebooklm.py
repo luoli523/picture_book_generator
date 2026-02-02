@@ -186,11 +186,16 @@ class NotebookLMService:
             sources = await client.sources.list(notebook_id)
             existing_names = {src.title for src in sources}
 
-            # 生成唯一的文件名
+            # 生成唯一的文件名（保留 .md 后缀）
             source_title = title
             if source_title in existing_names:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                source_title = f"{title}_{timestamp}"
+                # 如果文件名包含 .md 后缀，在后缀前插入时间戳
+                if title.endswith(".md"):
+                    base_name = title[:-3]  # 去掉 .md
+                    source_title = f"{base_name}_{timestamp}.md"
+                else:
+                    source_title = f"{title}_{timestamp}"
                 print(f"    检测到同名文件，添加时间戳: {source_title}")
 
             # 创建临时 Markdown 文件
