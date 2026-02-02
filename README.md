@@ -148,17 +148,29 @@ NotebookLM 集成特性：
 - 自动处理同名文件（添加时间戳）
 - 生成 Slides 时只使用指定的绘本内容
 - Slides 文件以绘本名称命名
+- 支持自定义生成指令、格式和长度
 
 ```bash
 # 首次使用：登录 NotebookLM（会打开浏览器）
 notebooklm login
 
-# 生成NotebookLM Slides（智能模式）：
-# - 检查绘本文件是否存在
-# - 不存在则自动生成
-# - 上传到"儿童绘本" notebook
-# - 生成Slides并下载到output目录
+# 基础 Slides 生成
 picture-book generate dinosaur --nlm-slides
+
+# 自定义 Slides 生成（推荐）
+picture-book generate ocean --nlm-slides \
+  --nlm-instructions "创建色彩鲜艳、适合儿童的动画风格演示文稿" \
+  --nlm-format presenter \
+  --nlm-length short
+
+# 参数说明：
+# --nlm-instructions: 自定义生成指令（如："添加更多插图建议"）
+# --nlm-format:      格式选项
+#   - detailed:   详细版本（更多内容）
+#   - presenter:  演讲者版本（演讲笔记）
+# --nlm-length:      长度选项
+#   - default:    默认长度
+#   - short:      简短版本
 
 # 手动上传已有绘本到NotebookLM
 picture-book upload-to-notebooklm ./output/dinosaur.md

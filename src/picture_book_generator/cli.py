@@ -48,6 +48,21 @@ def generate(
         "--nlm-slides",
         help="生成NotebookLM Slides: 检查是否存在绘本文件，不存在则生成，然后上传到NotebookLM并生成Slides PDF",
     ),
+    nlm_instructions: str = typer.Option(
+        None,
+        "--nlm-instructions",
+        help="NotebookLM Slides 自定义指令 (如: '创建动画风格的儿童演示文稿')",
+    ),
+    nlm_format: str = typer.Option(
+        None,
+        "--nlm-format",
+        help="Slides 格式: detailed(详细) 或 presenter(演讲者)",
+    ),
+    nlm_length: str = typer.Option(
+        None,
+        "--nlm-length",
+        help="Slides 长度: short(短) 或 default(默认)",
+    ),
 ):
     """根据主题生成儿童绘本
 
@@ -124,12 +139,19 @@ def generate(
         notebooklm_service = NotebookLMService(settings)
 
         try:
+            # 准备语言参数
+            slides_language = "zh" if lang == Language.CHINESE else lang.value
+
             # 一键上传并生成 Slides
             slides_path = asyncio.run(
                 notebooklm_service.upload_and_generate_slides(
                     markdown_content,
                     title=book_title,
-                    download_dir=str(output_path.parent)
+                    download_dir=str(output_path.parent),
+                    instructions=nlm_instructions,
+                    language=slides_language,
+                    slide_format=nlm_format,
+                    slide_length=nlm_length,
                 )
             )
             console.print(f"\n[green]✓ Slides已保存到: {slides_path}[/green]")

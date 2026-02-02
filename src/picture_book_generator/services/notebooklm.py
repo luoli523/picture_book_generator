@@ -234,6 +234,10 @@ class NotebookLMService:
         source_ids: list[str] | None = None,
         source_title: str | None = None,
         download_dir: str | None = None,
+        instructions: str | None = None,
+        language: str = "en",
+        slide_format: str | None = None,
+        slide_length: str | None = None,
     ) -> str:
         """生成Slides并下载
 
@@ -242,11 +246,18 @@ class NotebookLMService:
             source_ids: 要使用的源文件ID列表（None 表示使用所有源文件）
             source_title: 源文件标题（用于命名输出文件，None 时使用 notebook ID）
             download_dir: 下载目录，默认为当前目录
+            instructions: 自定义生成指令（如："创建适合儿童的动画风格slides"）
+            language: 语言代码，默认 'en'
+            slide_format: 格式（'detailed' 或 'presenter'），默认 None
+            slide_length: 长度（'short' 或 'default'），默认 None
 
         Returns:
             下载的文件路径
         """
         self._check_notebooklm()
+
+        # 导入枚举类型
+        from notebooklm.rpc.types import SlideDeckFormat, SlideDeckLength
 
         download_path = Path(download_dir) if download_dir else Path.cwd()
         download_path.mkdir(parents=True, exist_ok=True)
@@ -258,10 +269,33 @@ class NotebookLMService:
             else:
                 print(f"    使用 notebook 中的所有源文件")
 
+            if instructions:
+                print(f"    自定义指令: {instructions}")
+
+            # 转换格式参数
+            format_enum = None
+            if slide_format:
+                if slide_format.lower() == "detailed":
+                    format_enum = SlideDeckFormat.DETAILED_DECK
+                elif slide_format.lower() == "presenter":
+                    format_enum = SlideDeckFormat.PRESENTER_SLIDES
+
+            length_enum = None
+            if slide_length:
+                if slide_length.lower() == "short":
+                    length_enum = SlideDeckLength.SHORT
+                elif slide_length.lower() == "default":
+                    length_enum = SlideDeckLength.DEFAULT
+
             try:
                 # 生成 Slide Deck（演示文稿）
                 status = await client.artifacts.generate_slide_deck(
-                    notebook_id, source_ids=source_ids
+                    notebook_id,
+                    source_ids=source_ids,
+                    language=language,
+                    instructions=instructions,
+                    slide_format=format_enum,
+                    slide_length=length_enum,
                 )
                 print(f"✓ Slides 生成任务已创建 (Task ID: {status.task_id})")
 
@@ -320,7 +354,14 @@ class NotebookLMService:
                 raise
 
     async def upload_and_generate_slides(
-        self, content: str, title: str, download_dir: str | None = None
+        self,
+        content: str,
+        title: str,
+        download_dir: str | None = None,
+        instructions: str | None = None,
+        language: str = "en",
+        slide_format: str | None = None,
+        slide_length: str | None = None,
     ) -> str:
         """一键上传并生成Slides
 
@@ -328,6 +369,10 @@ class NotebookLMService:
             content: Markdown格式的绘本内容
             title: 源文件标题
             download_dir: 下载目录
+            instructions: 自定义生成指令
+            language: 语言代码
+            slide_format: 格式（'detailed' 或 'presenter'）
+            slide_length: 长度（'short' 或 'default'）
 
         Returns:
             下载的Slides文件路径
@@ -337,7 +382,14 @@ class NotebookLMService:
 
         # 生成并下载（只使用刚上传的源文件）
         slides_path = await self.generate_slides(
-            notebook_id, [source_id], source_title, download_dir
+            notebook_id,
+            [source_id],
+            source_title,
+            download_dir,
+            instructions,
+            language,
+            slide_format,
+            slide_length,
         )
 
         return slides_path
