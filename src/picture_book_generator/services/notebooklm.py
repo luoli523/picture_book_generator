@@ -234,10 +234,10 @@ class NotebookLMService:
         source_ids: list[str] | None = None,
         source_title: str | None = None,
         download_dir: str | None = None,
-        instructions: str | None = None,
+        instructions: str | None = "创建适合儿童和少年阅读的，卡通风格",
         language: str = "en",
-        slide_format: str | None = None,
-        slide_length: str | None = None,
+        slide_format: str | None = "detailed",
+        slide_length: str | None = "default",
     ) -> str:
         """生成Slides并下载
 
@@ -246,10 +246,10 @@ class NotebookLMService:
             source_ids: 要使用的源文件ID列表（None 表示使用所有源文件）
             source_title: 源文件标题（用于命名输出文件，None 时使用 notebook ID）
             download_dir: 下载目录，默认为当前目录
-            instructions: 自定义生成指令（如："创建适合儿童的动画风格slides"）
+            instructions: 自定义生成指令，默认："创建适合儿童和少年阅读的，卡通风格"
             language: 语言代码，默认 'en'
-            slide_format: 格式（'detailed' 或 'presenter'），默认 None
-            slide_length: 长度（'short' 或 'default'），默认 None
+            slide_format: 格式（'detailed' 或 'presenter'），默认 'detailed'
+            slide_length: 长度（'short' 或 'default'），默认 'default'
 
         Returns:
             下载的文件路径
@@ -358,10 +358,10 @@ class NotebookLMService:
         content: str,
         title: str,
         download_dir: str | None = None,
-        instructions: str | None = None,
+        instructions: str | None = "创建适合儿童和少年阅读的，卡通风格",
         language: str = "en",
-        slide_format: str | None = None,
-        slide_length: str | None = None,
+        slide_format: str | None = "detailed",
+        slide_length: str | None = "default",
     ) -> str:
         """一键上传并生成Slides
 
@@ -369,10 +369,10 @@ class NotebookLMService:
             content: Markdown格式的绘本内容
             title: 源文件标题
             download_dir: 下载目录
-            instructions: 自定义生成指令
-            language: 语言代码
-            slide_format: 格式（'detailed' 或 'presenter'）
-            slide_length: 长度（'short' 或 'default'）
+            instructions: 自定义生成指令，默认："创建适合儿童和少年阅读的，卡通风格"
+            language: 语言代码，默认 'en'
+            slide_format: 格式（'detailed' 或 'presenter'），默认 'detailed'
+            slide_length: 长度（'short' 或 'default'），默认 'default'
 
         Returns:
             下载的Slides文件路径

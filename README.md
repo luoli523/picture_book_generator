@@ -154,10 +154,15 @@ NotebookLM 集成特性：
 # 首次使用：登录 NotebookLM（会打开浏览器）
 notebooklm login
 
-# 基础 Slides 生成
+# 基础 Slides 生成（使用默认设置）
 picture-book generate dinosaur --nlm-slides
 
-# 自定义 Slides 生成（推荐）
+# 默认设置：
+# - instructions: "创建适合儿童和少年阅读的，卡通风格"
+# - format: detailed（详细版本）
+# - length: default（默认长度）
+
+# 自定义 Slides 生成
 picture-book generate ocean --nlm-slides \
   --nlm-instructions "创建色彩鲜艳、适合儿童的动画风格演示文稿" \
   --nlm-format presenter \
@@ -165,10 +170,10 @@ picture-book generate ocean --nlm-slides \
 
 # 参数说明：
 # --nlm-instructions: 自定义生成指令（如："添加更多插图建议"）
-# --nlm-format:      格式选项
+# --nlm-format:      格式选项（默认: detailed）
 #   - detailed:   详细版本（更多内容）
 #   - presenter:  演讲者版本（演讲笔记）
-# --nlm-length:      长度选项
+# --nlm-length:      长度选项（默认: default）
 #   - default:    默认长度
 #   - short:      简短版本
 
