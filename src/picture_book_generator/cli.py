@@ -121,31 +121,25 @@ def generate(
             book_title = book.title
 
         # 上传到 NotebookLM 并生成 Slides
-        console.print("\n[blue]正在上传到NotebookLM...[/blue]")
         notebooklm_service = NotebookLMService(settings)
 
         try:
-            notebook_url = asyncio.run(
-                notebooklm_service.upload(markdown_content, title=book_title)
-            )
-            console.print(f"[green]已上传到NotebookLM: {notebook_url}[/green]")
-
-            # 生成 Slides
-            console.print("\n[blue]正在生成Slides...[/blue]")
+            # 一键上传并生成 Slides
             slides_path = asyncio.run(
-                notebooklm_service.generate_slides(
-                    notebook_url, download_dir=str(output_path.parent)
+                notebooklm_service.upload_and_generate_slides(
+                    markdown_content,
+                    title=book_title,
+                    download_dir=str(output_path.parent)
                 )
             )
-            console.print(f"[green]Slides已保存到: {slides_path}[/green]")
+            console.print(f"\n[green]✓ Slides已保存到: {slides_path}[/green]")
 
         except ImportError as e:
-            console.print(f"[red]{e}[/red]")
-            console.print("请先安装NotebookLM依赖:")
-            console.print("  pip install picture-book-generator[notebooklm]")
-            console.print("  playwright install chromium")
+            console.print(f"\n[red]{e}[/red]")
         except Exception as e:
-            console.print(f"[red]NotebookLM操作失败: {e}[/red]")
+            console.print(f"\n[red]NotebookLM操作失败: {e}[/red]")
+            import traceback
+            console.print(f"[dim]{traceback.format_exc()}[/dim]")
             raise typer.Exit(1)
 
     else:
@@ -189,11 +183,11 @@ def version():
 def notebooklm_login():
     """登录NotebookLM (首次使用前需要执行)
 
-    会打开浏览器让你登录Google账号，登录状态会被保存用于后续上传。
+    使用说明:
+        1. pip install picture-book-generator[notebooklm]
+        2. notebooklm login  # 在终端中运行此命令
 
-    使用前请确保已安装依赖:
-        pip install picture-book-generator[notebooklm]
-        playwright install chromium
+    登录会打开浏览器完成Google授权。
     """
     from .services.notebooklm import NotebookLMService
 
@@ -202,12 +196,11 @@ def notebooklm_login():
 
     try:
         asyncio.run(service.login())
-        console.print("[green]登录成功![/green]")
     except ImportError as e:
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]登录失败: {e}[/red]")
+        console.print(f"[red]操作失败: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -233,9 +226,13 @@ def upload_to_notebooklm(
 
     try:
         console.print("正在上传到NotebookLM...")
-        url = asyncio.run(service.upload(content, title=path.stem))
+        notebook_id, source_id, source_title = asyncio.run(
+            service.upload(content, title=path.stem)
+        )
         console.print(f"[green]上传成功![/green]")
-        console.print(f"笔记本链接: {url}")
+        console.print(f"Notebook: 儿童绘本 (ID: {notebook_id})")
+        console.print(f"Source: {source_title} (ID: {source_id})")
+        console.print(f"访问: https://notebooklm.google.com/notebook/{notebook_id}")
     except ImportError as e:
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1)
@@ -246,7 +243,7 @@ def upload_to_notebooklm(
 
 @app.command()
 def generate_slides(
-    notebook_url: str = typer.Argument(..., help="NotebookLM笔记本URL"),
+    notebook_url: str = typer.Argument(..., help="NotebookLM笔记本URL或ID"),
     output_dir: str = typer.Option(
         None,
         "--output-dir",
@@ -258,16 +255,21 @@ def generate_slides(
 
     示例:
         picture-book generate-slides https://notebooklm.google.com/notebook/xxx
-        picture-book generate-slides https://notebooklm.google.com/notebook/xxx -o ./slides
+        picture-book generate-slides notebook-id-xxx -o ./slides
     """
     from .services.notebooklm import NotebookLMService
 
     settings = get_settings()
     service = NotebookLMService(settings)
 
+    # 从URL中提取notebook_id（如果是URL的话）
+    notebook_id = notebook_url
+    if "notebooklm.google.com/notebook/" in notebook_url:
+        notebook_id = notebook_url.split("/notebook/")[-1].split("?")[0]
+
     try:
         console.print("[blue]正在生成Slides...[/blue]")
-        slides_path = asyncio.run(service.generate_slides(notebook_url, output_dir))
+        slides_path = asyncio.run(service.generate_slides(notebook_id, output_dir))
         console.print(f"[green]Slides已保存到: {slides_path}[/green]")
     except ImportError as e:
         console.print(f"[red]{e}[/red]")

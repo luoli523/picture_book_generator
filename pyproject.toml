@@ -23,7 +23,7 @@ dev = [
     "ruff>=0.5.0",
 ]
 notebooklm = [
-    "playwright>=1.40.0",
+    "notebooklm-py>=0.3.2",
 ]
 
 [project.scripts]

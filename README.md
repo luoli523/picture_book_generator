@@ -37,9 +37,8 @@ pip install -e .
 # 开发依赖 (测试、代码检查)
 pip install -e ".[dev]"
 
-# NotebookLM集成 (浏览器自动化)
+# NotebookLM集成
 pip install -e ".[notebooklm]"
-playwright install chromium
 ```
 
 ## 配置
@@ -128,22 +127,34 @@ picture-book version
 
 ### NotebookLM 集成与 Slides 生成
 
+NotebookLM 集成特性：
+- 所有绘本上传到统一的"儿童绘本" notebook
+- 自动处理同名文件（添加时间戳）
+- 生成 Slides 时只使用指定的绘本内容
+- Slides 文件以绘本名称命名
+
 ```bash
-# 首次使用：登录Google账号 (会打开浏览器)
-picture-book notebooklm-login
+# 首次使用：登录 NotebookLM（会打开浏览器）
+notebooklm login
 
 # 生成NotebookLM Slides（智能模式）：
 # - 检查绘本文件是否存在
 # - 不存在则自动生成
-# - 上传到NotebookLM
+# - 上传到"儿童绘本" notebook
 # - 生成Slides并下载到output目录
 picture-book generate dinosaur --nlm-slides
 
 # 手动上传已有绘本到NotebookLM
 picture-book upload-to-notebooklm ./output/dinosaur.md
 
-# 从已有NotebookLM笔记本生成Slides
+# 从已有NotebookLM笔记本生成Slides（使用所有源文件）
 picture-book generate-slides https://notebooklm.google.com/notebook/xxx
+# 或直接使用 notebook ID
+picture-book generate-slides notebook-123456
+
+# 备用工具：手动下载 Slides（当自动下载失败时）
+python3 download_slides.py list                    # 列出所有笔记本
+python3 download_slides.py <notebook_id>          # 下载指定笔记本的 Slides
 ```
 
 ### Python API
