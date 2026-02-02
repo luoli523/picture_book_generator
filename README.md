@@ -132,12 +132,12 @@ picture-book version
 # 首次使用：登录Google账号 (会打开浏览器)
 picture-book notebooklm-login
 
-# 生成Slides（智能模式）：
+# 生成NotebookLM Slides（智能模式）：
 # - 检查绘本文件是否存在
 # - 不存在则自动生成
 # - 上传到NotebookLM
 # - 生成Slides并下载到output目录
-picture-book generate dinosaur --slides
+picture-book generate dinosaur --nlm-slides
 
 # 手动上传已有绘本到NotebookLM
 picture-book upload-to-notebooklm ./output/dinosaur.md
@@ -217,7 +217,7 @@ picture_book_generator/
 | 命令 | 说明 |
 |------|------|
 | `picture-book generate <主题>` | 生成绘本（默认英文，5章，7-10岁） |
-| `picture-book generate <主题> --slides` | 智能Slides生成：检查绘本→生成(如需)→上传→下载Slides |
+| `picture-book generate <主题> --nlm-slides` | NotebookLM Slides生成：检查绘本→生成(如需)→上传→下载Slides |
 | `picture-book generate <主题> --lang zh` | 生成中文绘本 |
 | `picture-book languages` | 列出支持的语言 |
 | `picture-book version` | 显示版本 |

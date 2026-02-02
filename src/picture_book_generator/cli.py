@@ -43,11 +43,10 @@ def generate(
         "-o",
         help="输出文件路径 (默认: ./output/<topic>.md)",
     ),
-    slides: bool = typer.Option(
+    nlm_slides: bool = typer.Option(
         False,
-        "--slides",
-        "-s",
-        help="生成Slides: 检查是否存在绘本文件，不存在则生成，然后上传到NotebookLM并生成Slides PDF",
+        "--nlm-slides",
+        help="生成NotebookLM Slides: 检查是否存在绘本文件，不存在则生成，然后上传到NotebookLM并生成Slides PDF",
     ),
 ):
     """根据主题生成儿童绘本
@@ -56,7 +55,7 @@ def generate(
         picture-book generate 恐龙
         picture-book generate "太空探险" --lang en --chapters 8
         picture-book generate 海洋生物 -l zh -c 6 -o my_book.md
-        picture-book generate 恐龙 --slides  # 生成绘本并创建Slides
+        picture-book generate 恐龙 --nlm-slides  # 生成绘本并创建NotebookLM Slides
     """
     # 解析语言
     try:
@@ -96,8 +95,8 @@ def generate(
         output_path = Path(output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Slides 模式：检查文件是否存在，不存在则生成
-    if slides:
+    # NotebookLM Slides 模式：检查文件是否存在，不存在则生成
+    if nlm_slides:
         from .services.notebooklm import NotebookLMService
 
         # 检查绘本文件是否存在
