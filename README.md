@@ -29,11 +29,12 @@
 - **多语言支持**: 中文、英文、日文、韩文（默认英文）
 - **多 LLM 提供商**: 支持 Claude、ChatGPT、Gemini、Grok
 - **结构化输出**: 生成包含章节、插图描述、知识要点的完整 Markdown 绘本
-- **NotebookLM Slides**: 
-  - 一键上传到 Google NotebookLM
-  - 自动生成精美的 Slides 演示文稿（PDF）
+- **NotebookLM Slides（默认启用）**: 
+  - 一键自动生成绘本 + Slides PDF
+  - 上传到统一的"儿童绘本" notebook
   - 支持自定义生成指令、格式和长度
-  - 智能文件管理（统一 notebook、避免重名）
+  - 智能文件管理（保留完整文件名、避免重名）
+  - 优雅错误处理（失败时不影响绘本生成）
 - **Prompt 模板化**: 所有 LLM prompt 独立为文件，易于定制优化
 
 ## ⚡ 快速开始
@@ -47,12 +48,12 @@ cd picture_book_generator
 # 2. 配置 LLM API（编辑 .env 文件）
 # 设置 DEFAULT_LLM_PROVIDER 和对应的 API_KEY
 
-# 3. 生成你的第一本绘本
+# 3. 生成你的第一本绘本（自动生成 Markdown + Slides PDF）
+notebooklm login  # 首次使用需要登录（一次性操作）
 picture-book generate ocean
 
-# 4. （可选）生成 NotebookLM Slides
-notebooklm login  # 首次使用需要登录
-picture-book generate dinosaur --nlm-slides
+# 4. （可选）仅生成绘本，不生成 Slides
+picture-book generate dinosaur --no-nlm-slides
 ```
 
 ## 📦 安装
@@ -164,11 +165,14 @@ SERP_API_KEY=xxxxx
 ### 命令行
 
 ```bash
-# 基本用法 - 生成英文绘本（默认）
-picture-book generate dinosaur
+# 基本用法 - 生成英文绘本 + Slides（默认）
+picture-book generate ocean
 
-# 生成中文绘本
+# 生成中文绘本 + Slides
 picture-book generate 恐龙 --lang zh
+
+# 仅生成绘本，不生成 Slides
+picture-book generate dinosaur --no-nlm-slides
 
 # 自定义参数
 picture-book generate ocean \
@@ -187,33 +191,39 @@ picture-book version
 
 ### NotebookLM 集成与 Slides 生成
 
+**默认行为（推荐）**：`generate` 命令自动生成绘本 + Slides PDF
+
 NotebookLM 集成特性：
-- 所有绘本上传到统一的"儿童绘本" notebook
-- 自动处理同名文件（添加时间戳）
-- 生成 Slides 时只使用指定的绘本内容
-- Slides 文件以绘本名称命名
-- 支持自定义生成指令、格式和长度
+- ✨ **默认启用**：一键生成绘本和 Slides
+- 📁 统一管理：所有绘本上传到"儿童绘本" notebook
+- 📎 保留文件名：上传时保留完整文件名（包括 .md 后缀）
+- 🔄 智能重命名：同名文件自动添加时间戳（如 `ocean_20250102_123456.md`）
+- 🎯 精准引用：Slides 仅使用指定的绘本内容
+- 🛡️ 优雅容错：连接或生成失败时不影响绘本输出
 
 ```bash
-# 首次使用：登录 NotebookLM（会打开浏览器）
+# 首次使用：登录 NotebookLM（一次性操作）
 notebooklm login
 
-# 基础 Slides 生成（使用默认设置）
-picture-book generate dinosaur --nlm-slides
+# 基础用法（自动生成绘本 + Slides，使用默认设置）
+picture-book generate ocean
 
 # 默认设置：
 # - instructions: "创建适合儿童和少年阅读的，卡通风格"
 # - format: detailed（详细版本）
 # - length: default（默认长度）
 
+# 仅生成绘本，跳过 Slides
+picture-book generate dinosaur --no-nlm-slides
+
 # 自定义 Slides 生成
-picture-book generate ocean --nlm-slides \
+picture-book generate ocean \
   --nlm-instructions "创建色彩鲜艳、适合儿童的动画风格演示文稿" \
   --nlm-format presenter \
   --nlm-length short
 
 # 参数说明：
-# --nlm-instructions: 自定义生成指令（如："添加更多插图建议"）
+# --nlm-instructions: 自定义生成指令
 # --nlm-format:      格式选项（默认: detailed）
 #   - detailed:   详细版本（更多内容）
 #   - presenter:  演讲者版本（演讲笔记）
@@ -221,10 +231,10 @@ picture-book generate ocean --nlm-slides \
 #   - default:    默认长度
 #   - short:      简短版本
 
-# 手动上传已有绘本到NotebookLM
+# 手动上传已有绘本到 NotebookLM
 picture-book upload-to-notebooklm ./output/dinosaur.md
 
-# 从已有NotebookLM笔记本生成Slides（使用所有源文件）
+# 从已有 NotebookLM 笔记本生成 Slides
 picture-book generate-slides https://notebooklm.google.com/notebook/xxx
 # 或直接使用 notebook ID
 picture-book generate-slides notebook-123456
@@ -236,44 +246,46 @@ python3 download_slides.py <notebook_id>          # 下载指定笔记本的 Sli
 
 ## 💡 使用示例和最佳实践
 
-### 示例 1：基础使用
+### 示例 1：基础使用（默认生成 Slides）
 
 ```bash
-# 生成英文绘本（默认）
+# 生成英文绘本 + Slides（默认）
 picture-book generate ocean
 
-# 生成中文绘本
+# 生成中文绘本 + Slides
 picture-book generate 恐龙 --lang zh
+
+# 仅生成绘本，不生成 Slides
+picture-book generate dinosaur --no-nlm-slides
 
 # 自定义年龄和章节
 picture-book generate space --min-age 8 --max-age 12 --chapters 8
 ```
 
-### 示例 2：NotebookLM Slides（推荐工作流）
-
-```bash
-# 方式 1：一键生成绘本 + Slides
-picture-book generate ocean --nlm-slides
-
-# 方式 2：先生成绘本，后续再生成 Slides
-picture-book generate dinosaur
-picture-book upload-to-notebooklm ./output/dinosaur.md
-# 在 NotebookLM 网页中手动生成 Slides
-```
-
-### 示例 3：自定义 Slides 风格
+### 示例 2：自定义 Slides 风格
 
 ```bash
 # 简短版本，演讲者格式
-picture-book generate ocean --nlm-slides \
+picture-book generate ocean \
   --nlm-instructions "创建简洁的演讲稿格式，适合课堂演讲" \
   --nlm-format presenter \
   --nlm-length short
 
 # 详细版本，教学重点
-picture-book generate space --nlm-slides \
+picture-book generate space \
   --nlm-instructions "强调科学知识点，添加趣味问题，适合小学科学课" \
   --nlm-format detailed
+```
+
+### 示例 3：手动上传和 Slides 生成
+
+```bash
+# 方式 1：先生成绘本，后续手动上传
+picture-book generate dinosaur --no-nlm-slides
+picture-book upload-to-notebooklm ./output/dinosaur.md
+
+# 方式 2：从已有 notebook 生成 Slides
+picture-book generate-slides https://notebooklm.google.com/notebook/xxx
 ```
 
 ### 最佳实践
@@ -288,9 +300,12 @@ picture-book generate space --nlm-slides \
    - ❌ 抽象主题：`"科学"`、`"自然"`（范围太广）
 
 3. **NotebookLM Slides**：
-   - 默认设置已优化儿童阅读
+   - 默认自动生成，无需额外参数
+   - 首次使用需运行 `notebooklm login` 登录（一次性）
+   - 默认设置已优化儿童阅读体验
    - 使用 `--nlm-instructions` 可针对特定场景定制
-   - 生成时间通常 2-5 分钟，请耐心等待
+   - 生成时间通常 2-5 分钟，失败时会优雅跳过
+   - 需要快速生成时使用 `--no-nlm-slides` 跳过
 
 4. **Prompt 定制**：
    - 所有 prompt 在 `src/picture_book_generator/prompts/` 目录
@@ -360,7 +375,7 @@ picture_book_generator/
    - 生成每章详细内容、插图描述、知识要点
 5. **输出**: 
    - Markdown 文件保存到 `output/` 目录
-   - （可选）上传到 NotebookLM 生成 Slides PDF
+   - （默认启用）上传到 NotebookLM 生成 Slides PDF
 
 ## 🚀 CLI 命令速查
 
@@ -368,8 +383,8 @@ picture_book_generator/
 
 | 命令 | 说明 | 示例 |
 |------|------|------|
-| `generate <主题>` | 生成绘本（默认：英文，5章，7-10岁） | `picture-book generate ocean` |
-| `generate <主题> --nlm-slides` | 生成绘本 + NotebookLM Slides | `picture-book generate ocean --nlm-slides` |
+| `generate <主题>` | 生成绘本 + Slides（默认：英文，5章，7-10岁） | `picture-book generate ocean` |
+| `generate <主题> --no-nlm-slides` | 仅生成绘本，跳过 Slides | `picture-book generate ocean --no-nlm-slides` |
 | `languages` | 列出支持的语言 | `picture-book languages` |
 | `version` | 显示版本信息 | `picture-book version` |
 
@@ -382,6 +397,7 @@ picture_book_generator/
 | `--min-age` | - | `7` | 最小目标年龄 |
 | `--max-age` | - | `10` | 最大目标年龄 |
 | `--output` | `-o` | `./output/<主题>.md` | 输出文件路径 |
+| `--nlm-slides/--no-nlm-slides` | - | `启用` | 是否生成 NotebookLM Slides |
 
 ### NotebookLM 命令
 
@@ -418,14 +434,21 @@ notebooklm login
 # 按提示在浏览器中完成 Google 账号登录
 ```
 
+**问题：Slides 生成失败但不想影响绘本生成**
+- ✅ **无需担心**！现在 Slides 生成失败会优雅跳过
+- 绘本会正常生成和保存
+- 系统会显示黄色警告信息和失败原因
+- 如果不需要 Slides，使用 `--no-nlm-slides` 参数
+
 **问题：Slides 生成超时**
 - NotebookLM 生成 Slides 通常需要 2-5 分钟
-- 如果超过 10 分钟，可能失败
+- 如果超过 10 分钟，系统会自动超时并跳过
 - 使用备用工具手动下载：`python3 download_slides.py <notebook_id>`
 
 **问题：找不到 Slides 文件**
 - 检查 `output/` 目录
-- 文件命名格式：`<主题>_slides.pdf`
+- 文件命名格式：`<主题>_slides.pdf`（如 `ocean_slides.pdf`）
+- NotebookLM 中的源文件名包含 `.md` 后缀（如 `ocean.md`）
 
 ### LLM 相关
 
@@ -487,13 +510,15 @@ ruff format .
 ## ✅ 已完成功能
 
 - [x] 多语言绘本生成（中英日韩）
-- [x] 多 LLM 提供商支持
+- [x] 多 LLM 提供商支持（Claude、GPT、Gemini、Grok）
 - [x] 知识搜索集成（Tavily、SerpAPI、Wikipedia）
 - [x] Prompt 模板化管理
-- [x] NotebookLM Slides 自动生成
-- [x] NotebookLM 智能文件管理
+- [x] NotebookLM Slides 自动生成（默认启用）
+- [x] NotebookLM 智能文件管理（保留后缀、避免重名）
+- [x] 优雅错误处理（Slides 失败不影响绘本）
 - [x] 一键安装脚本
 - [x] 实时进度显示
+- [x] 灵活的 Slides 控制（可选跳过）
 
 ## 🚧 计划功能
 
