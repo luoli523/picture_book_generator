@@ -23,7 +23,7 @@ class ContentAdapterService:
 
     # 语言名称映射
     LANGUAGE_NAMES = {
-        Language.CHINESE: "中文",
+        Language.CHINESE: "简体中文 (Simplified Chinese)",
         Language.ENGLISH: "English",
         Language.JAPANESE: "日本語",
         Language.KOREAN: "한국어",

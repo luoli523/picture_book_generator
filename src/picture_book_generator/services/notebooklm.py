@@ -1,5 +1,7 @@
 """NotebookLM服务 - 集成Google NotebookLM生成最终绘本"""
 
+from __future__ import annotations
+
 import asyncio
 import tempfile
 from datetime import datetime

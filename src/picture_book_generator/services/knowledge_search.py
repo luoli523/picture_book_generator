@@ -90,8 +90,8 @@ class KnowledgeSearchService:
         if not self.settings.tavily_api_key:
             return {"content": [], "sources": []}
 
-        # 为儿童绘本优化搜索查询
-        search_query = f"{topic} 儿童教育 科普知识"
+        # 为儿童绘本优化搜索查询 - 使用英文搜索获取更准确的知识
+        search_query = f"{topic} children education science facts for kids"
 
         payload = {
             "api_key": self.settings.tavily_api_key,
@@ -155,15 +155,15 @@ class KnowledgeSearchService:
         if not self.settings.serp_api_key:
             return {"content": [], "sources": []}
 
-        # 为儿童绘本优化搜索查询
-        search_query = f"{topic} 儿童 科普 教育"
+        # 为儿童绘本优化搜索查询 - 使用英文搜索获取更准确的知识
+        search_query = f"{topic} children education science facts for kids"
 
         params = {
             "api_key": self.settings.serp_api_key,
             "q": search_query,
             "engine": "google",
-            "hl": "zh-CN",  # 中文结果
-            "gl": "cn",  # 中国地区
+            "hl": "en",  # 英文结果
+            "gl": "us",  # 美国地区
             "num": max_results,
             "safe": "active",  # 安全搜索，过滤不适合儿童的内容
         }
@@ -212,7 +212,7 @@ class KnowledgeSearchService:
     async def _search_wikipedia(self, topic: str) -> dict:
         """维基百科搜索
 
-        支持中英文维基百科，自动fallback
+        仅使用英文维基百科获取准确的知识内容
 
         Args:
             topic: 搜索主题
@@ -223,18 +223,11 @@ class KnowledgeSearchService:
         content = []
         sources = []
 
-        # 尝试中文维基百科
-        zh_result = await self._fetch_wikipedia_page(topic, "zh")
-        if zh_result:
-            content.append(f"[维基百科] {zh_result['content']}")
-            sources.append(zh_result["url"])
-
-        # 如果中文没有结果，尝试英文维基百科
-        if not content:
-            en_result = await self._fetch_wikipedia_page(topic, "en")
-            if en_result:
-                content.append(f"[Wikipedia] {en_result['content']}")
-                sources.append(en_result["url"])
+        # 仅使用英文维基百科获取准确的知识内容
+        en_result = await self._fetch_wikipedia_page(topic, "en")
+        if en_result:
+            content.append(f"[Wikipedia] {en_result['content']}")
+            sources.append(en_result["url"])
 
         return {"content": content, "sources": sources}
 
