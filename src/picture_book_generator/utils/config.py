@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     tavily_api_key: str = ""
     serp_api_key: str = ""
 
+    # Telegram 配置
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
     # 输出配置
     output_dir: str = "./output"
 

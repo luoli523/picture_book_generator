@@ -186,6 +186,62 @@ class ContentAdapterService:
             language_name=self._get_language_name(language),
         )
 
+    async def generate_social_captions(
+        self,
+        topic: str,
+        book_title: str,
+        summary: str,
+        language: Language,
+    ) -> dict[str, str]:
+        """生成双语社交媒体文案（中文 + 英文）
+
+        Args:
+            topic: 绘本主题
+            book_title: 绘本标题
+            summary: 绘本简介
+            language: 绘本原始语言
+
+        Returns:
+            {"zh": 中文文案, "en": 英文文案}
+        """
+        prompt = (
+            f"You are a social media copywriter for children's educational content.\n\n"
+            f"A picture book has been created:\n"
+            f"- Topic: {topic}\n"
+            f"- Title: {book_title}\n"
+            f"- Summary: {summary}\n\n"
+            f"Generate TWO social media captions for parents/educators:\n\n"
+            f"1. A Chinese (简体中文) caption: 2-3 sentences, warm and inviting, "
+            f"highlight what children will learn.\n"
+            f"2. An English caption: 2-3 sentences, engaging and educational.\n\n"
+            f"Output strictly in this JSON format (no other content):\n"
+            f'{{"zh": "中文文案内容", "en": "English caption content"}}'
+        )
+        response = await self._call_llm(prompt)
+
+        import json
+        import re
+
+        try:
+            start = response.find("{")
+            end = response.rfind("}")
+            if start != -1 and end != -1:
+                result = json.loads(response[start : end + 1])
+                return {
+                    "zh": result.get("zh", f"一本关于{topic}的儿童科普绘本，适合7-10岁阅读。"),
+                    "en": result.get(
+                        "en",
+                        f"A fun picture book about {topic} for kids ages 7-10.",
+                    ),
+                }
+        except json.JSONDecodeError:
+            pass
+
+        return {
+            "zh": f"一本关于{topic}的儿童科普绘本，适合7-10岁阅读。",
+            "en": f"A fun picture book about {topic} for kids ages 7-10.",
+        }
+
     async def generate_book_structure(
         self,
         topic: str,

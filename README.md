@@ -35,6 +35,8 @@
   - 支持自定义生成指令、格式和长度
   - 智能文件管理（保留完整文件名、避免重名）
   - 优雅错误处理（失败时不影响绘本生成）
+- **Slides 图片拆分**: 自动将 Slides PDF 拆分为单页 PNG 图片
+- **Telegram 分享**: 一键发送 Slides 图片 + 双语（中/英）社交媒体文案到 Telegram
 - **Prompt 模板化**: 所有 LLM prompt 独立为文件，易于定制优化
 
 ## ⚡ 快速开始
@@ -43,10 +45,11 @@
 # 1. 克隆并安装
 git clone https://github.com/luoli523/picture_book_generator.git
 cd picture_book_generator
-./install.sh
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && pip install -e .
 
-# 2. 配置 LLM API（编辑 .env 文件）
-# 设置 DEFAULT_LLM_PROVIDER 和对应的 API_KEY
+# 2. 配置 API（复制并编辑 .env 文件）
+cp .env.example .env  # 然后填入 API_KEY
 
 # 3. 生成你的第一本绘本（自动生成 Markdown + Slides PDF）
 notebooklm login  # 首次使用需要登录（一次性操作）
@@ -58,48 +61,22 @@ picture-book generate dinosaur --no-nlm-slides
 
 ## 📦 安装
 
-### 基础安装
-
-> **注意**: `.venv` 虚拟环境目录不包含在代码库中，需要自己创建。
-
-### 方式一：一键安装脚本（推荐）
-
 ```bash
 # 克隆项目
 git clone <repo-url>
 cd picture_book_generator
 
-# 运行安装脚本
-./install.sh
-```
-
-安装脚本会自动：
-- ✓ 检查 Python 环境（需要 Python 3.10+）
-- ✓ 创建虚拟环境（可选）
-- ✓ 安装依赖包
-- ✓ 创建 .env 配置文件
-- ✓ 验证安装
-
-### 方式二：手动安装
-
-```bash
-# 克隆项目
-git clone <repo-url>
-cd picture_book_generator
-
-# 创建虚拟环境（推荐）
+# 创建虚拟环境（推荐，需要 Python 3.10+）
 python3 -m venv .venv
 source .venv/bin/activate  # Linux/macOS
 # 或 .venv\Scripts\activate  # Windows
 
-# 安装基础依赖
+# 安装依赖
+pip install -r requirements.txt
 pip install -e .
 
-# （可选）安装 NotebookLM 集成
-pip install -e ".[notebooklm]"
-
-# （可选）安装开发依赖
-pip install -e ".[dev]"
+# 创建配置文件
+cp .env.example .env
 ```
 
 ## 配置
@@ -160,6 +137,24 @@ SERP_API_KEY=xxxxx
 
 **搜索优先级**: Tavily > SerpAPI > Wikipedia (并行执行，结果合并)
 
+### 4. 可选：配置 Telegram 推送
+
+将生成的 Slides 图片和双语文案一键发送到 Telegram。
+
+```bash
+# 1. 找 @BotFather 创建 Bot，获取 Token
+# 2. 获取 Chat ID: 给 Bot 发消息后访问
+#    https://api.telegram.org/bot<TOKEN>/getUpdates
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+使用时添加 `--telegram` 参数即可：
+
+```bash
+picture-book generate Rocket --lang zh --telegram
+```
+
 ## 使用方法
 
 ### 命令行
@@ -173,6 +168,9 @@ picture-book generate 恐龙 --lang zh
 
 # 仅生成绘本，不生成 Slides
 picture-book generate dinosaur --no-nlm-slides
+
+# 生成绘本 + Slides + 发送到 Telegram
+picture-book generate Rocket --lang zh --telegram
 
 # 自定义参数
 picture-book generate ocean \
@@ -316,7 +314,7 @@ picture-book generate-slides https://notebooklm.google.com/notebook/xxx
 
 ```
 picture_book_generator/
-├── install.sh                          # 一键安装脚本
+├── requirements.txt                    # 项目依赖
 ├── download_slides.py                  # NotebookLM Slides 备用下载工具
 ├── src/
 │   └── picture_book_generator/
@@ -328,7 +326,9 @@ picture_book_generator/
 │       ├── services/
 │       │   ├── knowledge_search.py     # 知识搜索（Tavily/SerpAPI/Wikipedia）
 │       │   ├── content_adapter.py      # LLM 内容适配服务
-│       │   └── notebooklm.py           # NotebookLM 集成（notebooklm-py SDK）
+│       │   ├── notebooklm.py           # NotebookLM 集成（notebooklm-py SDK）
+│       │   ├── pdf_splitter.py         # PDF 拆分为图片（PyMuPDF）
+│       │   └── telegram.py             # Telegram 推送服务
 │       ├── prompts/                    # LLM Prompt 模板目录
 │       │   ├── __init__.py
 │       │   ├── adapt_content.txt       # 内容适配 prompt
@@ -339,7 +339,7 @@ picture_book_generator/
 │           └── config.py               # 配置管理（pydantic-settings）
 ├── tests/
 ├── output/                             # 生成的绘本和 Slides 输出目录
-├── pyproject.toml                      # 项目配置和依赖
+├── pyproject.toml                      # 项目配置和构建
 ├── .env.example                        # 环境变量配置模板
 └── README.md
 ```
@@ -419,7 +419,6 @@ picture_book_generator/
 
 | 工具 | 说明 |
 |------|------|
-| `./install.sh` | 一键安装和环境配置 |
 | `python3 download_slides.py list` | 列出所有 NotebookLM 笔记本 |
 | `python3 download_slides.py <ID>` | 手动下载 Slides（备用方案） |
 

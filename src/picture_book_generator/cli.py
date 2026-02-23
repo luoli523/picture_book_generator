@@ -73,6 +73,11 @@ def generate(
         "--nlm-length",
         help="Slides 长度: short(短) 或 default(默认)",
     ),
+    telegram: bool = typer.Option(
+        False,
+        "--telegram/--no-telegram",
+        help="将 Slides 图片和双语文案发送到 Telegram",
+    ),
 ):
     """根据主题生成儿童绘本（默认包含 NotebookLM Slides）
 
@@ -138,6 +143,8 @@ def generate(
         output_path = Path(output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    slides_path = None
+
     # NotebookLM Slides 模式：检查文件是否存在，不存在则生成
     if nlm_slides:
         from .services.notebooklm import NotebookLMService
@@ -146,7 +153,7 @@ def generate(
         if output_path.exists():
             console.print(f"[cyan]找到已存在的绘本: {output_path}[/cyan]")
             markdown_content = output_path.read_text(encoding="utf-8")
-            book_title = output_path.name  # 使用文件名（包含 .md 后缀）
+            book_title = output_path.name
         else:
             # 文件不存在，生成绘本
             console.print(f"[cyan]绘本不存在，开始生成...[/cyan]")
@@ -161,14 +168,14 @@ def generate(
             markdown_content = book.to_markdown()
             output_path.write_text(markdown_content, encoding="utf-8")
             console.print(f"[green]绘本已保存到: {output_path}[/green]")
-            book_title = output_path.name  # 使用文件名（包含 .md 后缀）
+            book_title = output_path.name
 
         # 上传到 NotebookLM 并生成 Slides
         console.print(f"\n[cyan]开始生成 NotebookLM Slides...[/cyan]")
-        
+
         try:
             notebooklm_service = NotebookLMService(settings)
-            
+
             # 准备语言参数
             slides_language = "zh" if lang == Language.CHINESE else lang.value
 
@@ -186,9 +193,11 @@ def generate(
             )
             console.print(f"\n[green]✓ Slides 已保存到: {slides_path}[/green]")
 
-        except ImportError as e:
+        except ImportError:
             console.print(f"\n[yellow]⚠ NotebookLM 功能未安装，跳过 Slides 生成[/yellow]")
-            console.print(f"[dim]提示: 运行 'pip install -e \".[notebooklm]\"' 安装相关依赖[/dim]")
+            console.print(
+                f"[dim]提示: 运行 'pip install -r requirements.txt' 安装相关依赖[/dim]"
+            )
         except Exception as e:
             console.print(f"\n[yellow]⚠ NotebookLM Slides 生成失败，已跳过[/yellow]")
             console.print(f"[dim]原因: {e}[/dim]")
@@ -204,9 +213,104 @@ def generate(
             raise typer.Exit(1)
 
         # 保存输出
-        output_path.write_text(book.to_markdown(), encoding="utf-8")
+        markdown_content = book.to_markdown()
+        output_path.write_text(markdown_content, encoding="utf-8")
         console.print(f"\n[green]绘本已保存到: {output_path}[/green]")
         console.print(f"[dim]提示: 使用 --nlm-slides 可生成 NotebookLM Slides[/dim]")
+
+    # === PDF 拆分为图片 + Telegram 发送 ===
+    if slides_path:
+        image_paths = _split_slides_pdf(slides_path)
+
+        if telegram and image_paths:
+            _send_to_telegram(
+                settings, image_paths, markdown_content, topic, lang
+            )
+
+
+def _split_slides_pdf(slides_path: str) -> list[str]:
+    """将Slides PDF拆分为图片"""
+    from .services.pdf_splitter import PDFSplitterService
+
+    try:
+        splitter = PDFSplitterService()
+        console.print(f"\n[cyan]正在将 Slides 拆分为图片...[/cyan]")
+        image_paths = splitter.split(slides_path)
+        img_dir = Path(image_paths[0]).parent if image_paths else ""
+        console.print(f"[green]✓ 已生成 {len(image_paths)} 张图片: {img_dir}[/green]")
+        return image_paths
+    except ImportError:
+        console.print(f"\n[yellow]⚠ PyMuPDF 未安装，跳过 PDF 拆分[/yellow]")
+        console.print(f"[dim]提示: 运行 'pip install -r requirements.txt' 安装相关依赖[/dim]")
+        return []
+    except Exception as e:
+        console.print(f"\n[yellow]⚠ PDF 拆分失败: {e}[/yellow]")
+        return []
+
+
+def _send_to_telegram(
+    settings,
+    image_paths: list[str],
+    markdown_content: str,
+    topic: str,
+    lang: Language,
+) -> None:
+    """发送图片和双语文案到Telegram"""
+    from .services.telegram import TelegramService
+    from .services.content_adapter import ContentAdapterService
+
+    try:
+        tg = TelegramService(settings)
+    except ValueError as e:
+        console.print(f"\n[yellow]⚠ {e}[/yellow]")
+        return
+
+    console.print(f"\n[cyan]正在发送到 Telegram...[/cyan]")
+
+    # 从 markdown 中提取标题和摘要
+    lines = markdown_content.split("\n")
+    book_title = lines[0].lstrip("# ").strip() if lines else topic
+    summary = ""
+    in_summary = False
+    for line in lines:
+        if line.startswith("## ") and ("简介" in line or "Summary" in line):
+            in_summary = True
+            continue
+        if in_summary:
+            if line.startswith("## "):
+                break
+            if line.strip():
+                summary = line.strip()
+                break
+
+    # 生成双语文案
+    console.print(f"  生成双语社交媒体文案...")
+    try:
+        adapter = ContentAdapterService(settings)
+        captions = asyncio.run(
+            adapter.generate_social_captions(topic, book_title, summary, lang)
+        )
+    except Exception as e:
+        console.print(f"[yellow]  文案生成失败，使用默认文案: {e}[/yellow]")
+        captions = {
+            "zh": f"一本关于{topic}的儿童科普绘本，适合7-10岁阅读。",
+            "en": f"A fun picture book about {topic} for kids ages 7-10.",
+        }
+
+    # 发送到 Telegram
+    try:
+        asyncio.run(
+            tg.send_book_slides(
+                image_paths=image_paths,
+                book_title=book_title,
+                summary_zh=captions["zh"],
+                summary_en=captions["en"],
+                topic=topic,
+            )
+        )
+        console.print(f"[green]✓ 已发送到 Telegram[/green]")
+    except Exception as e:
+        console.print(f"\n[yellow]⚠ Telegram 发送失败: {e}[/yellow]")
 
 
 @app.command()
@@ -237,7 +341,7 @@ def notebooklm_login():
     """登录NotebookLM (首次使用前需要执行)
 
     使用说明:
-        1. pip install picture-book-generator[notebooklm]
+        1. pip install -r requirements.txt
         2. notebooklm login  # 在终端中运行此命令
 
     登录会打开浏览器完成Google授权。
@@ -330,6 +434,82 @@ def generate_slides(
     except Exception as e:
         console.print(f"[red]生成Slides失败: {e}[/red]")
         raise typer.Exit(1)
+
+
+@app.command()
+def share(
+    pdf_path: str = typer.Argument(..., help="Slides PDF 文件路径"),
+    book_path: str = typer.Option(
+        None,
+        "--book",
+        "-b",
+        help="对应的绘本 Markdown 文件路径（用于生成文案，不传则使用默认文案）",
+    ),
+    topic: str = typer.Option(
+        None,
+        "--topic",
+        "-t",
+        help="绘本主题（不传则从文件名推断）",
+    ),
+    no_telegram: bool = typer.Option(
+        False,
+        "--no-telegram",
+        help="仅切图，不发送 Telegram",
+    ),
+):
+    """将已有 Slides PDF 切成图片并发送到 Telegram
+
+    示例:
+        # 切图 + 发送 Telegram
+        picture-book share output/AImd_slides.pdf --book output/AI.md
+
+        # 仅切图，不发送
+        picture-book share output/AImd_slides.pdf --no-telegram
+
+        # 指定主题
+        picture-book share output/slides.pdf --topic Rocket
+    """
+    pdf = Path(pdf_path)
+    if not pdf.exists():
+        console.print(f"[red]文件不存在: {pdf_path}[/red]")
+        raise typer.Exit(1)
+
+    # 切图
+    image_paths = _split_slides_pdf(str(pdf))
+    if not image_paths:
+        raise typer.Exit(1)
+
+    if no_telegram:
+        return
+
+    # 准备发送 Telegram
+    settings = get_settings()
+
+    inferred_topic = topic or pdf.stem.replace("_slides", "").replace("md", "").strip("_")
+
+    # 读取绘本内容（如果提供了）
+    markdown_content = ""
+    if book_path:
+        bp = Path(book_path)
+        if bp.exists():
+            markdown_content = bp.read_text(encoding="utf-8")
+        else:
+            console.print(f"[yellow]⚠ 绘本文件不存在: {book_path}，将使用默认文案[/yellow]")
+
+    if not markdown_content:
+        # 尝试自动查找同目录下的 .md 文件
+        candidate = pdf.parent / f"{inferred_topic}.md"
+        if candidate.exists():
+            markdown_content = candidate.read_text(encoding="utf-8")
+            console.print(f"[cyan]自动找到绘本: {candidate}[/cyan]")
+
+    _send_to_telegram(
+        settings,
+        image_paths,
+        markdown_content or f"# {inferred_topic}",
+        inferred_topic,
+        Language.ENGLISH,
+    )
 
 
 if __name__ == "__main__":

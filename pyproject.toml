@@ -22,9 +22,6 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "ruff>=0.5.0",
 ]
-notebooklm = [
-    "notebooklm-py>=0.3.2",
-]
 
 [project.scripts]
 picture-book = "picture_book_generator.cli:app"

@@ -34,7 +34,7 @@ class NotebookLMService:
     - 思维导图
 
     使用前需要:
-    1. pip install picture-book-generator[notebooklm]
+    1. pip install -r requirements.txt
     2. notebooklm login  # 命令行登录
     """
 
@@ -46,7 +46,7 @@ class NotebookLMService:
         if not NOTEBOOKLM_AVAILABLE:
             raise ImportError(
                 "notebooklm-py未安装。请运行:\n"
-                "  pip install picture-book-generator[notebooklm]\n"
+                "  pip install -r requirements.txt\n"
                 "  notebooklm login  # 首次使用需要登录"
             )
 

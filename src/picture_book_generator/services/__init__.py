@@ -3,5 +3,13 @@
 from .knowledge_search import KnowledgeSearchService
 from .content_adapter import ContentAdapterService
 from .notebooklm import NotebookLMService
+from .pdf_splitter import PDFSplitterService
+from .telegram import TelegramService
 
-__all__ = ["KnowledgeSearchService", "ContentAdapterService", "NotebookLMService"]
+__all__ = [
+    "KnowledgeSearchService",
+    "ContentAdapterService",
+    "NotebookLMService",
+    "PDFSplitterService",
+    "TelegramService",
+]
