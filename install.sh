@@ -76,16 +76,16 @@ main() {
     create_venv=${create_venv:-Y}
     
     if [[ $create_venv =~ ^[Yy]$ ]]; then
-        if [ -d "venv" ]; then
+        if [ -d ".venv" ]; then
             print_warning "虚拟环境已存在"
         else
             print_info "创建虚拟环境..."
-            python3 -m venv venv
+            python3 -m venv .venv
             print_success "虚拟环境创建成功"
         fi
         
         print_info "激活虚拟环境..."
-        source venv/bin/activate
+        source .venv/bin/activate
         print_success "虚拟环境已激活"
     fi
     
@@ -146,7 +146,7 @@ main() {
         picture-book --version
     else
         print_error "picture-book 命令未找到"
-        print_warning "如果使用虚拟环境，请确保已激活: source venv/bin/activate"
+        print_warning "如果使用虚拟环境，请确保已激活: source .venv/bin/activate"
     fi
     
     # 9. 显示后续步骤
@@ -159,7 +159,7 @@ main() {
     
     if [[ $create_venv =~ ^[Yy]$ ]]; then
         echo "1. 激活虚拟环境:"
-        echo "   ${GREEN}source venv/bin/activate${NC}"
+        echo "   ${GREEN}source .venv/bin/activate${NC}"
         echo ""
     fi
     

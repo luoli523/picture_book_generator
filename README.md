@@ -88,9 +88,9 @@ git clone <repo-url>
 cd picture_book_generator
 
 # 创建虚拟环境（推荐）
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# 或 venv\Scripts\activate  # Windows
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# 或 .venv\Scripts\activate  # Windows
 
 # 安装基础依赖
 pip install -e .
@@ -467,7 +467,7 @@ notebooklm login
 **问题：`picture-book` 命令找不到**
 ```bash
 # 确保已激活虚拟环境
-source venv/bin/activate  # Linux/macOS
+source .venv/bin/activate  # Linux/macOS
 # 或重新安装
 pip install -e .
 ```
