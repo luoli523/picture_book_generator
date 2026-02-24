@@ -17,6 +17,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+notebooklm = [
+    "notebooklm-py>=0.3.2",
+]
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
