@@ -91,6 +91,24 @@ class TelegramService:
             for fh in file_handles:
                 fh.close()
 
+    async def send_document(
+        self, file_path: str, caption: str = "", parse_mode: str = "HTML"
+    ) -> dict:
+        """发送文件（PDF 等）"""
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            with open(file_path, "rb") as f:
+                resp = await client.post(
+                    f"{self.base_url}/sendDocument",
+                    data={
+                        "chat_id": self.chat_id,
+                        "caption": caption,
+                        "parse_mode": parse_mode,
+                    },
+                    files={"document": (Path(file_path).name, f, "application/pdf")},
+                )
+            resp.raise_for_status()
+            return resp.json()
+
     async def send_book_slides(
         self,
         image_paths: list[str],

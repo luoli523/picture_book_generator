@@ -73,10 +73,15 @@ def generate(
         "--nlm-length",
         help="Slides 长度: short(短) 或 default(默认)",
     ),
-    telegram: bool = typer.Option(
+    tg: bool = typer.Option(
         False,
-        "--telegram/--no-telegram",
-        help="将 Slides 图片和双语文案发送到 Telegram",
+        "--tg",
+        help="将 Slides PDF 发送到 Telegram",
+    ),
+    split: bool = typer.Option(
+        False,
+        "--split",
+        help="将 Slides PDF 切分为图片",
     ),
 ):
     """根据主题生成儿童绘本（默认包含 NotebookLM Slides）
@@ -90,6 +95,12 @@ def generate(
         
         # 仅生成绘本，不生成 Slides
         picture-book generate space --no-nlm-slides
+
+        # 生成 Slides 并发送 PDF 到 Telegram
+        picture-book generate ocean --tg
+
+        # 生成 Slides 并切分为图片
+        picture-book generate ocean --split
         
         # 自定义章节和年龄
         picture-book generate space --lang en --chapters 8 --min-age 8 --max-age 12
@@ -147,7 +158,7 @@ def generate(
         asyncio.run(
             _generate_async(
                 config, settings, output_path, lang, nlm_slides,
-                nlm_instructions, nlm_format, nlm_length, telegram, topic,
+                nlm_instructions, nlm_format, nlm_length, tg, split, topic,
             )
         )
     except typer.Exit:
@@ -166,7 +177,8 @@ async def _generate_async(
     nlm_instructions: str | None,
     nlm_format: str | None,
     nlm_length: str | None,
-    telegram: bool,
+    tg: bool,
+    split: bool,
     topic: str,
 ) -> None:
     """generate 命令的异步主逻辑，确保只调用一次 asyncio.run()"""
@@ -236,14 +248,13 @@ async def _generate_async(
         console.print(f"\n[green]绘本已保存到: {output_path}[/green]")
         console.print(f"[dim]提示: 使用 --nlm-slides 可生成 NotebookLM Slides[/dim]")
 
-    # === PDF 拆分为图片 + Telegram 发送 ===
-    if slides_path:
-        image_paths = _split_slides_pdf(slides_path)
+    # === PDF 切分为图片 ===
+    if slides_path and split:
+        _split_slides_pdf(slides_path)
 
-        if telegram and image_paths:
-            await _send_to_telegram_async(
-                settings, image_paths, markdown_content, topic, lang
-            )
+    # === 发送 PDF 到 Telegram ===
+    if slides_path and tg:
+        await _send_pdf_to_telegram_async(settings, slides_path)
 
 
 def _split_slides_pdf(slides_path: str) -> list[str]:
@@ -266,62 +277,19 @@ def _split_slides_pdf(slides_path: str) -> list[str]:
         return []
 
 
-async def _send_to_telegram_async(
-    settings,
-    image_paths: list[str],
-    markdown_content: str,
-    topic: str,
-    lang: Language,
-) -> None:
-    """发送图片和双语文案到Telegram"""
+async def _send_pdf_to_telegram_async(settings, pdf_path: str) -> None:
+    """发送 PDF 文件到 Telegram"""
     from .services.telegram import TelegramService
-    from .services.content_adapter import ContentAdapterService
 
     try:
-        tg = TelegramService(settings)
+        tg_service = TelegramService(settings)
     except ValueError as e:
         console.print(f"\n[yellow]⚠ {e}[/yellow]")
         return
 
-    console.print(f"\n[cyan]正在发送到 Telegram...[/cyan]")
-
-    # 从 markdown 中提取标题和摘要
-    lines = markdown_content.split("\n")
-    book_title = lines[0].lstrip("# ").strip() if lines else topic
-    summary = ""
-    in_summary = False
-    for line in lines:
-        if line.startswith("## ") and ("简介" in line or "Summary" in line):
-            in_summary = True
-            continue
-        if in_summary:
-            if line.startswith("## "):
-                break
-            if line.strip():
-                summary = line.strip()
-                break
-
-    # 生成双语文案
-    console.print(f"  生成双语社交媒体文案...")
+    console.print(f"\n[cyan]正在发送 PDF 到 Telegram...[/cyan]")
     try:
-        adapter = ContentAdapterService(settings)
-        captions = await adapter.generate_social_captions(topic, book_title, summary, lang)
-    except Exception as e:
-        console.print(f"[yellow]  文案生成失败，使用默认文案: {e}[/yellow]")
-        captions = {
-            "zh": f"一本关于{topic}的儿童科普绘本，适合7-10岁阅读。",
-            "en": f"A fun picture book about {topic} for kids ages 7-10.",
-        }
-
-    # 发送到 Telegram
-    try:
-        await tg.send_book_slides(
-            image_paths=image_paths,
-            book_title=book_title,
-            summary_zh=captions["zh"],
-            summary_en=captions["en"],
-            topic=topic,
-        )
+        await tg_service.send_document(pdf_path)
         console.print(f"[green]✓ 已发送到 Telegram[/green]")
     except Exception as e:
         console.print(f"\n[yellow]⚠ Telegram 发送失败: {e}[/yellow]")
