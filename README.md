@@ -39,6 +39,7 @@
 - **Slides 图片拆分**: 自动将 Slides PDF 拆分为单页 PNG 图片
 - **Telegram 分享**: 一键发送 Slides 图片 + 双语（中/英）社交媒体文案到 Telegram
 - **Prompt 模板化**: 所有 LLM prompt 独立为文件，易于定制优化
+- **Web 应用**: Gradio Web 界面，可视化配置和实时生成
 
 ## ⚡ 快速开始
 
@@ -47,7 +48,7 @@
 git clone https://github.com/luoli523/picture_book_generator.git
 cd picture_book_generator
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[notebooklm]"  # 完整版本，包含 NotebookLM Slides
+pip install -r requirements.txt  # 安装依赖
 
 # 2. 配置 API（复制并编辑 .env 文件）
 cp .env.example .env  # 然后填入 API_KEY
@@ -100,7 +101,7 @@ python app.py
 
 ```bash
 # 克隆项目
-git clone <repo-url>
+git clone https://github.com/luoli523/picture_book_generator.git
 cd picture_book_generator
 
 # 创建虚拟环境（推荐，需要 Python 3.10+）
@@ -108,11 +109,14 @@ python3 -m venv .venv
 source .venv/bin/activate  # Linux/macOS
 # 或 .venv\Scripts\activate  # Windows
 
-# 安装核心依赖
-pip install -e .
+# 安装依赖（包含 NotebookLM、PyMuPDF 等完整功能）
+pip install -r requirements.txt
 
-# （推荐）安装包含 NotebookLM Slides 功能的完整版本
-pip install -e ".[notebooklm]"
+# 或使用可选依赖安装
+pip install -e .                   # 仅核心功能
+pip install -e ".[notebooklm]"     # + NotebookLM Slides
+pip install -e ".[web]"            # + Gradio Web 界面
+pip install -e ".[web,notebooklm]" # 全部功能
 
 # 创建配置文件
 cp .env.example .env
@@ -354,7 +358,10 @@ picture-book generate-slides https://notebooklm.google.com/notebook/xxx
 ```
 picture_book_generator/
 ├── requirements.txt                    # 项目依赖
+├── pyproject.toml                      # 项目配置和构建
+├── app.py                              # Gradio Web 应用入口
 ├── download_slides.py                  # NotebookLM Slides 备用下载工具
+├── DEPLOYMENT.md                       # Web 应用部署指南
 ├── src/
 │   └── picture_book_generator/
 │       ├── __init__.py
@@ -377,8 +384,11 @@ picture_book_generator/
 │       └── utils/
 │           └── config.py               # 配置管理（pydantic-settings）
 ├── tests/
+│   ├── test_models.py                  # 数据模型测试
+│   ├── test_knowledge_search.py        # 知识搜索测试
+│   ├── test_content_adapter.py         # 内容适配服务测试（mock）
+│   └── test_generator.py              # 生成器核心逻辑测试（mock）
 ├── output/                             # 生成的绘本和 Slides 输出目录
-├── pyproject.toml                      # 项目配置和构建
 ├── .env.example                        # 环境变量配置模板
 └── README.md
 ```
@@ -438,13 +448,14 @@ picture_book_generator/
 | `--output` | `-o` | `./output/<主题>.md` | 输出文件路径 |
 | `--nlm-slides/--no-nlm-slides` | - | `启用` | 是否生成 NotebookLM Slides |
 
-### NotebookLM 命令
+### NotebookLM & 分享命令
 
 | 命令 | 说明 |
 |------|------|
 | `notebooklm-login` | 登录 NotebookLM（首次使用前执行：`notebooklm login`） |
 | `upload-to-notebooklm <文件>` | 手动上传绘本到"儿童绘本" notebook |
 | `generate-slides <URL或ID>` | 从已有 notebook 生成 Slides |
+| `share <PDF>` | 将 Slides PDF 切图并发送到 Telegram |
 
 ### NotebookLM Slides 参数
 
@@ -454,12 +465,21 @@ picture_book_generator/
 | `--nlm-format` | `detailed` | 格式：detailed（详细）或 presenter（演讲者） |
 | `--nlm-length` | `default` | 长度：default（默认）或 short（简短） |
 
+### Share 命令参数
+
+| 参数 | 说明 |
+|------|------|
+| `--book` / `-b` | 对应的绘本 Markdown 文件（用于生成文案） |
+| `--topic` / `-t` | 绘本主题（不传则从文件名推断） |
+| `--no-telegram` | 仅切图，不发送 Telegram |
+
 ### 辅助工具
 
 | 工具 | 说明 |
 |------|------|
 | `python3 download_slides.py list` | 列出所有 NotebookLM 笔记本 |
 | `python3 download_slides.py <ID>` | 手动下载 Slides（备用方案） |
+| `python app.py` | 启动 Gradio Web 界面（需安装 `gradio`） |
 
 ## 🐛 故障排除
 
@@ -516,11 +536,11 @@ pip install -e .
 # 安装开发依赖
 pip install -e ".[dev]"
 
-# 运行测试
-pytest
+# 运行测试（包含模型、搜索、内容适配、生成器的 mock 测试）
+pytest -v
 
 # 代码检查
-ruff check .
+ruff check src/ tests/
 
 # 格式化
 ruff format .
@@ -538,12 +558,16 @@ ruff format .
 ## 🔮 技术栈
 
 - **CLI**: Typer + Rich（命令行界面和美化输出）
+- **Web**: Gradio（可视化 Web 界面）
 - **LLM**: 多提供商支持（Anthropic、OpenAI、Google、xAI）
 - **搜索**: Tavily API、SerpAPI、Wikipedia API
 - **异步**: asyncio + httpx（并发请求）
 - **配置**: pydantic-settings（类型安全的配置管理）
-- **NotebookLM**: notebooklm-py SDK（官方 Python 接口）
+- **NotebookLM**: notebooklm-py SDK（Google NotebookLM 接口）
+- **PDF**: PyMuPDF（PDF 拆分为 PNG 图片）
+- **分享**: Telegram Bot API（图片 + 双语文案推送）
 - **Prompt**: 模板化管理（独立 .txt 文件）
+- **测试**: pytest + pytest-asyncio（含 mock 测试）
 
 ## ✅ 已完成功能
 
@@ -554,15 +578,18 @@ ruff format .
 - [x] NotebookLM Slides 自动生成（默认启用）
 - [x] NotebookLM 智能文件管理（保留后缀、避免重名）
 - [x] 优雅错误处理（Slides 失败不影响绘本）
-- [x] 一键安装脚本
+- [x] Slides PDF 拆分为 PNG 图片
+- [x] Telegram 推送（图片 + 双语社交媒体文案）
+- [x] `share` 命令（独立切图 + 分享）
+- [x] Gradio Web 界面
 - [x] 实时进度显示
 - [x] 灵活的 Slides 控制（可选跳过）
+- [x] 单元测试覆盖（mock 测试）
 
 ## 🚧 计划功能
 
 - [ ] 图片生成集成（DALL-E、Midjourney、Stable Diffusion）
 - [ ] PDF 导出（带排版和插图）
-- [ ] Web 界面（Gradio 或 Streamlit）
 - [ ] 批量生成模式
 - [ ] 绘本模板系统
 
