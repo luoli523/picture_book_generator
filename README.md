@@ -46,7 +46,7 @@
 git clone https://github.com/luoli523/picture_book_generator.git
 cd picture_book_generator
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt && pip install -e .
+pip install -e ".[notebooklm]"  # 完整版本，包含 NotebookLM Slides
 
 # 2. 配置 API（复制并编辑 .env 文件）
 cp .env.example .env  # 然后填入 API_KEY
@@ -71,9 +71,11 @@ python3 -m venv .venv
 source .venv/bin/activate  # Linux/macOS
 # 或 .venv\Scripts\activate  # Windows
 
-# 安装依赖
-pip install -r requirements.txt
+# 安装核心依赖
 pip install -e .
+
+# （推荐）安装包含 NotebookLM Slides 功能的完整版本
+pip install -e ".[notebooklm]"
 
 # 创建配置文件
 cp .env.example .env
