@@ -421,79 +421,40 @@ def generate_slides(
 @app.command()
 def share(
     pdf_path: str = typer.Argument(..., help="Slides PDF 文件路径"),
-    book_path: str = typer.Option(
-        None,
-        "--book",
-        "-b",
-        help="对应的绘本 Markdown 文件路径（用于生成文案，不传则使用默认文案）",
-    ),
-    topic: str = typer.Option(
-        None,
-        "--topic",
-        "-t",
-        help="绘本主题（不传则从文件名推断）",
-    ),
-    no_telegram: bool = typer.Option(
+    tg: bool = typer.Option(
         False,
-        "--no-telegram",
-        help="仅切图，不发送 Telegram",
+        "--tg",
+        help="将 PDF 发送到 Telegram",
+    ),
+    split: bool = typer.Option(
+        False,
+        "--split",
+        help="将 PDF 切分为图片",
     ),
 ):
-    """将已有 Slides PDF 切成图片并发送到 Telegram
+    """对已有 Slides PDF 执行切图和/或发送 Telegram
 
     示例:
-        # 切图 + 发送 Telegram
-        picture-book share output/AImd_slides.pdf --book output/AI.md
+        # 发送 PDF 到 Telegram
+        picture-book share output/AImd_slides.pdf --tg
 
-        # 仅切图，不发送
-        picture-book share output/AImd_slides.pdf --no-telegram
+        # 切分为图片
+        picture-book share output/AImd_slides.pdf --split
 
-        # 指定主题
-        picture-book share output/slides.pdf --topic Rocket
+        # 切图 + 发送
+        picture-book share output/AImd_slides.pdf --split --tg
     """
     pdf = Path(pdf_path)
     if not pdf.exists():
         console.print(f"[red]文件不存在: {pdf_path}[/red]")
         raise typer.Exit(1)
 
-    # 切图
-    image_paths = _split_slides_pdf(str(pdf))
-    if not image_paths:
-        raise typer.Exit(1)
+    if split:
+        _split_slides_pdf(str(pdf))
 
-    if no_telegram:
-        return
-
-    # 准备发送 Telegram
-    settings = get_settings()
-
-    inferred_topic = topic or pdf.stem.replace("_slides", "").replace("md", "").strip("_")
-
-    # 读取绘本内容（如果提供了）
-    markdown_content = ""
-    if book_path:
-        bp = Path(book_path)
-        if bp.exists():
-            markdown_content = bp.read_text(encoding="utf-8")
-        else:
-            console.print(f"[yellow]⚠ 绘本文件不存在: {book_path}，将使用默认文案[/yellow]")
-
-    if not markdown_content:
-        # 尝试自动查找同目录下的 .md 文件
-        candidate = pdf.parent / f"{inferred_topic}.md"
-        if candidate.exists():
-            markdown_content = candidate.read_text(encoding="utf-8")
-            console.print(f"[cyan]自动找到绘本: {candidate}[/cyan]")
-
-    asyncio.run(
-        _send_to_telegram_async(
-            settings,
-            image_paths,
-            markdown_content or f"# {inferred_topic}",
-            inferred_topic,
-            Language.ENGLISH,
-        )
-    )
+    if tg:
+        settings = get_settings()
+        asyncio.run(_send_pdf_to_telegram_async(settings, str(pdf)))
 
 
 if __name__ == "__main__":
