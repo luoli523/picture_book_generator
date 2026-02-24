@@ -114,14 +114,7 @@ def generate_picture_book(
 
 
 # 创建 Gradio 界面
-with gr.Blocks(
-    title="儿童绘本生成器",
-    theme=gr.themes.Soft(),
-    css="""
-        .gradio-container {max-width: 900px !important}
-        .output-markdown {font-family: monospace; font-size: 14px;}
-    """
-) as demo:
+with gr.Blocks(title="儿童绘本生成器") as demo:
     gr.Markdown(
         """
         # 📚 儿童绘本自动生成器
@@ -225,7 +218,6 @@ with gr.Blocks(
                 label="状态",
                 lines=8,
                 interactive=False,
-                show_copy_button=True,
             )
             
             markdown_output = gr.File(
