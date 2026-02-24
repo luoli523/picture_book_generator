@@ -26,6 +26,12 @@ class KnowledgeSearchService:
         self.settings = settings
         self.client = httpx.AsyncClient(timeout=30.0)
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
     async def search(self, topic: str, max_results: int = 5) -> dict:
         """搜索主题相关知识
 
@@ -231,7 +237,7 @@ class KnowledgeSearchService:
 
         return {"content": content, "sources": sources}
 
-    async def _fetch_wikipedia_page(self, topic: str, lang: str = "zh") -> dict | None:
+    async def _fetch_wikipedia_page(self, topic: str, lang: str = "en") -> dict | None:
         """获取维基百科页面摘要
 
         Args:

@@ -5,7 +5,6 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..services.content_adapter import ContentAdapterService
 from ..services.knowledge_search import KnowledgeSearchService
-from ..services.notebooklm import NotebookLMService
 from ..utils.config import Language, Settings
 from .models import BookConfig, Chapter, PictureBook
 
@@ -24,9 +23,7 @@ class PictureBookGenerator:
 
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or Settings()
-        self.knowledge_service = KnowledgeSearchService(self.settings)
         self.content_adapter = ContentAdapterService(self.settings)
-        self.notebooklm_service = NotebookLMService(self.settings)
 
     async def generate(self, config: BookConfig) -> PictureBook:
         """生成绘本
@@ -44,7 +41,8 @@ class PictureBookGenerator:
         ) as progress:
             # 步骤1: 搜索知识
             task = progress.add_task(f"正在搜索关于「{config.topic}」的知识...", total=None)
-            knowledge = await self.knowledge_service.search(config.topic)
+            async with KnowledgeSearchService(self.settings) as knowledge_service:
+                knowledge = await knowledge_service.search(config.topic)
             progress.update(task, completed=True)
 
             # 步骤2: 适配内容
@@ -157,14 +155,3 @@ class PictureBookGenerator:
 
         return book
 
-    async def upload_to_notebooklm(self, book: PictureBook) -> str:
-        """上传绘本到NotebookLM
-
-        Args:
-            book: 绘本对象
-
-        Returns:
-            NotebookLM链接
-        """
-        markdown_content = book.to_markdown()
-        return await self.notebooklm_service.upload(markdown_content)

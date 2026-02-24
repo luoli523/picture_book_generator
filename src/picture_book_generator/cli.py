@@ -143,7 +143,35 @@ def generate(
         output_path = Path(output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    try:
+        asyncio.run(
+            _generate_async(
+                config, settings, output_path, lang, nlm_slides,
+                nlm_instructions, nlm_format, nlm_length, telegram, topic,
+            )
+        )
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"[red]生成失败: {e}[/red]")
+        raise typer.Exit(1)
+
+
+async def _generate_async(
+    config: BookConfig,
+    settings,
+    output_path: Path,
+    lang: Language,
+    nlm_slides: bool,
+    nlm_instructions: str | None,
+    nlm_format: str | None,
+    nlm_length: str | None,
+    telegram: bool,
+    topic: str,
+) -> None:
+    """generate 命令的异步主逻辑，确保只调用一次 asyncio.run()"""
     slides_path = None
+    markdown_content = ""
 
     # NotebookLM Slides 模式：检查文件是否存在，不存在则生成
     if nlm_slides:
@@ -158,11 +186,7 @@ def generate(
             # 文件不存在，生成绘本
             console.print(f"[cyan]绘本不存在，开始生成...[/cyan]")
             generator = PictureBookGenerator(settings)
-            try:
-                book = asyncio.run(generator.generate(config))
-            except Exception as e:
-                console.print(f"[red]生成失败: {e}[/red]")
-                raise typer.Exit(1)
+            book = await generator.generate(config)
 
             # 保存绘本
             markdown_content = book.to_markdown()
@@ -180,16 +204,14 @@ def generate(
             slides_language = "zh" if lang == Language.CHINESE else lang.value
 
             # 一键上传并生成 Slides
-            slides_path = asyncio.run(
-                notebooklm_service.upload_and_generate_slides(
-                    markdown_content,
-                    title=book_title,
-                    download_dir=str(output_path.parent),
-                    instructions=nlm_instructions,
-                    language=slides_language,
-                    slide_format=nlm_format,
-                    slide_length=nlm_length,
-                )
+            slides_path = await notebooklm_service.upload_and_generate_slides(
+                markdown_content,
+                title=book_title,
+                download_dir=str(output_path.parent),
+                instructions=nlm_instructions,
+                language=slides_language,
+                slide_format=nlm_format,
+                slide_length=nlm_length,
             )
             console.print(f"\n[green]✓ Slides 已保存到: {slides_path}[/green]")
 
@@ -206,11 +228,7 @@ def generate(
     else:
         # 仅生成绘本模式（不生成 Slides）
         generator = PictureBookGenerator(settings)
-        try:
-            book = asyncio.run(generator.generate(config))
-        except Exception as e:
-            console.print(f"[red]生成失败: {e}[/red]")
-            raise typer.Exit(1)
+        book = await generator.generate(config)
 
         # 保存输出
         markdown_content = book.to_markdown()
@@ -223,7 +241,7 @@ def generate(
         image_paths = _split_slides_pdf(slides_path)
 
         if telegram and image_paths:
-            _send_to_telegram(
+            await _send_to_telegram_async(
                 settings, image_paths, markdown_content, topic, lang
             )
 
@@ -248,7 +266,7 @@ def _split_slides_pdf(slides_path: str) -> list[str]:
         return []
 
 
-def _send_to_telegram(
+async def _send_to_telegram_async(
     settings,
     image_paths: list[str],
     markdown_content: str,
@@ -287,9 +305,7 @@ def _send_to_telegram(
     console.print(f"  生成双语社交媒体文案...")
     try:
         adapter = ContentAdapterService(settings)
-        captions = asyncio.run(
-            adapter.generate_social_captions(topic, book_title, summary, lang)
-        )
+        captions = await adapter.generate_social_captions(topic, book_title, summary, lang)
     except Exception as e:
         console.print(f"[yellow]  文案生成失败，使用默认文案: {e}[/yellow]")
         captions = {
@@ -299,14 +315,12 @@ def _send_to_telegram(
 
     # 发送到 Telegram
     try:
-        asyncio.run(
-            tg.send_book_slides(
-                image_paths=image_paths,
-                book_title=book_title,
-                summary_zh=captions["zh"],
-                summary_en=captions["en"],
-                topic=topic,
-            )
+        await tg.send_book_slides(
+            image_paths=image_paths,
+            book_title=book_title,
+            summary_zh=captions["zh"],
+            summary_en=captions["en"],
+            topic=topic,
         )
         console.print(f"[green]✓ 已发送到 Telegram[/green]")
     except Exception as e:
@@ -503,12 +517,14 @@ def share(
             markdown_content = candidate.read_text(encoding="utf-8")
             console.print(f"[cyan]自动找到绘本: {candidate}[/cyan]")
 
-    _send_to_telegram(
-        settings,
-        image_paths,
-        markdown_content or f"# {inferred_topic}",
-        inferred_topic,
-        Language.ENGLISH,
+    asyncio.run(
+        _send_to_telegram_async(
+            settings,
+            image_paths,
+            markdown_content or f"# {inferred_topic}",
+            inferred_topic,
+            Language.ENGLISH,
+        )
     )
 
 

@@ -220,7 +220,6 @@ class ContentAdapterService:
         response = await self._call_llm(prompt)
 
         import json
-        import re
 
         try:
             start = response.find("{")
@@ -277,12 +276,12 @@ class ContentAdapterService:
 
         # 解析JSON响应
         import json
-        import re
 
-        json_match = re.search(r'\{[^{}]*\}', response, re.DOTALL)
-        if json_match:
-            try:
-                result = json.loads(json_match.group())
+        try:
+            start = response.find("{")
+            end = response.rfind("}")
+            if start != -1 and end != -1:
+                result = json.loads(response[start : end + 1])
                 # 确保章节数量正确
                 chapters = result.get("chapters", [])
                 if len(chapters) < chapter_count:
@@ -292,8 +291,8 @@ class ContentAdapterService:
                     "summary": result.get("summary", ""),
                     "chapters": chapters[:chapter_count],
                 }
-            except json.JSONDecodeError:
-                pass
+        except json.JSONDecodeError:
+            pass
 
         # 解析失败时返回默认值
         return {
@@ -350,7 +349,6 @@ class ContentAdapterService:
 
         # 解析JSON响应
         import json
-        import re
 
         # 尝试匹配完整的JSON对象（包含嵌套）
         try:

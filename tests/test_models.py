@@ -14,7 +14,7 @@ class TestBookConfig:
     def test_default_values(self):
         config = BookConfig(topic="恐龙")
         assert config.topic == "恐龙"
-        assert config.language == Language.CHINESE
+        assert config.language == Language.ENGLISH
         assert config.age_range == (7, 10)
         assert config.chapter_count == 5
 
