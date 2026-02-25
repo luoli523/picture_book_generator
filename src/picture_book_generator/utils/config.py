@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.0-flash"
 
     # xAI (Grok)
-    xai_api_key: str = ""
+    grok_api_key: str = ""
     grok_model: str = "grok-2-latest"
     xai_base_url: str = "https://api.x.ai/v1"
 
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
             LLMProvider.ANTHROPIC: self.anthropic_api_key,
             LLMProvider.OPENAI: self.openai_api_key,
             LLMProvider.GEMINI: self.google_api_key,
-            LLMProvider.GROK: self.xai_api_key,
+            LLMProvider.GROK: self.grok_api_key,
         }
         return provider_keys.get(self.default_llm_provider, "")
 

@@ -139,7 +139,7 @@ cp .env.example .env
 | Anthropic (Claude) | `ANTHROPIC_API_KEY` | claude-sonnet-4-20250514 |
 | OpenAI (ChatGPT) | `OPENAI_API_KEY` | gpt-4o, gpt-5 |
 | Google (Gemini) | `GOOGLE_API_KEY` | gemini-2.0-flash |
-| xAI (Grok) | `XAI_API_KEY` | grok-2-latest |
+| xAI (Grok) | `GROK_API_KEY` | grok-2-latest |
 
 **.env 配置示例**:
 

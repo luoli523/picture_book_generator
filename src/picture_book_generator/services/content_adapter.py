@@ -66,7 +66,7 @@ class ContentAdapterService:
             from openai import AsyncOpenAI
 
             self._client = AsyncOpenAI(
-                api_key=self.settings.xai_api_key,
+                api_key=self.settings.grok_api_key,
                 base_url=self.settings.xai_base_url,
             )
 
