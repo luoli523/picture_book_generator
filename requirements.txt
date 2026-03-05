@@ -12,5 +12,17 @@ tenacity>=8.0.0
 # NotebookLM integration
 notebooklm-py>=0.3.2
 
+# Web UI
+gradio>=4.0.0
+
+# Web API
+fastapi>=0.115.0
+uvicorn>=0.30.0
+
 # PDF splitting & sharing
 PyMuPDF>=1.24.0
+
+# Development tools
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+ruff>=0.5.0

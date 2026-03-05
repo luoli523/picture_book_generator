@@ -39,6 +39,7 @@ ENV/
 output/
 *.md
 !README.md
+!docs/**/*.md
 
 # Test
 .pytest_cache/
@@ -48,3 +49,10 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node / Next.js
+node_modules/
+.next/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

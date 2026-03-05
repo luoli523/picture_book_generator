@@ -1,0 +1,148 @@
+:root {
+  --ocean-navy: #0c3558;
+  --ocean-cyan: #00a9c8;
+  --ocean-coral: #ff7f5a;
+  --ocean-foam: #f2fbff;
+  --ocean-surface: #ffffff;
+  --ocean-ink: #17324a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--ocean-ink);
+  background:
+    radial-gradient(circle at 6% 0%, rgba(0, 169, 200, 0.16), rgba(0, 169, 200, 0) 40%),
+    radial-gradient(circle at 96% 8%, rgba(255, 127, 90, 0.14), rgba(255, 127, 90, 0) 38%),
+    linear-gradient(180deg, #f6fdff, #eef9ff 55%, #f7fcff);
+}
+
+a {
+  color: inherit;
+}
+
+.page-shell {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 42px;
+}
+
+.hero {
+  border-radius: 24px;
+  padding: 26px 28px;
+  color: white;
+  margin-bottom: 18px;
+  background: linear-gradient(130deg, #0b3f67, #0083ad);
+  box-shadow: 0 16px 36px rgba(8, 63, 100, 0.24);
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.hero p {
+  margin: 8px 0 0;
+  line-height: 1.6;
+  opacity: 0.95;
+}
+
+.card {
+  background: var(--ocean-surface);
+  border-radius: 18px;
+  border: 1px solid rgba(14, 67, 102, 0.08);
+  box-shadow: 0 10px 26px rgba(7, 62, 100, 0.08);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid rgba(13, 72, 109, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+textarea {
+  min-height: 110px;
+}
+
+.btn {
+  border: none;
+  background: linear-gradient(130deg, var(--ocean-coral), #ff9867);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.progress {
+  height: 10px;
+  border-radius: 999px;
+  background: #dceef7;
+  overflow: hidden;
+}
+
+.progress > div {
+  height: 100%;
+  background: linear-gradient(90deg, #00a9c8, #39cbe4);
+}
+
+.muted {
+  font-size: 13px;
+  color: #537089;
+}
+
+.section-title {
+  margin: 0 0 12px;
+  color: var(--ocean-navy);
+  font-size: 18px;
+}
+
+@media (max-width: 900px) {
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .hero h1 {
+    font-size: 27px;
+  }
+}
+

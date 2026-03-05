@@ -15,6 +15,18 @@ class BookConfig(BaseModel):
     age_range: tuple[int, int] = Field(default=(7, 10), description="目标年龄范围")
     chapter_count: int = Field(default=5, ge=3, le=10, description="章节数量")
     include_illustrations: bool = Field(default=True, description="是否包含插图描述")
+    child_gender: str = Field(default="unspecified", description="孩子性别: boy/girl/unspecified")
+    reading_level: str = Field(default="basic", description="阅读水平: beginner/basic/advanced")
+    interests: list[str] = Field(default_factory=list, description="兴趣标签")
+    source_mode: str = Field(
+        default="topic",
+        description="内容来源模式: topic/parent_story/hybrid",
+    )
+    parent_story: str = Field(default="", description="家长提供的故事草稿")
+    style_theme: str = Field(default="ocean_pop", description="绘本风格主题ID")
+    narration_tone: str = Field(default="exploratory", description="叙事语气")
+    education_goal: str = Field(default="science", description="教育目标")
+    chapter_length: str = Field(default="medium", description="章节长度: short/medium/long")
 
 
 class Chapter(BaseModel):

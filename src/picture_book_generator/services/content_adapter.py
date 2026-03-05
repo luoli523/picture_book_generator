@@ -118,6 +118,7 @@ class ContentAdapterService:
         knowledge: dict,
         age_range: tuple[int, int],
         language: Language,
+        extra_context: str = "",
     ) -> dict:
         """将知识适配为儿童可读内容
 
@@ -131,13 +132,18 @@ class ContentAdapterService:
         """
         topic = knowledge.get("topic", "")
         raw_content = "\n\n".join(knowledge.get("content", []))
+        raw_content_for_prompt = raw_content
+        if raw_content and extra_context:
+            raw_content_for_prompt = f"{raw_content}\n\n[Customization]\n{extra_context}"
 
         if not raw_content:
             # 如果没有搜索到内容，使用LLM直接生成
-            return await self._generate_content_from_scratch(topic, age_range, language)
+            return await self._generate_content_from_scratch(
+                topic, age_range, language, extra_context
+            )
 
         # 使用LLM适配内容
-        prompt = self._build_adaptation_prompt(topic, raw_content, age_range, language)
+        prompt = self._build_adaptation_prompt(topic, raw_content_for_prompt, age_range, language)
         adapted_text = await self._call_llm(prompt)
 
         return {
@@ -151,6 +157,7 @@ class ContentAdapterService:
         topic: str,
         age_range: tuple[int, int],
         language: Language,
+        extra_context: str = "",
     ) -> dict:
         """从零开始生成内容"""
         prompt = render_prompt(
@@ -160,6 +167,8 @@ class ContentAdapterService:
             max_age=age_range[1],
             language_name=self._get_language_name(language),
         )
+        if extra_context:
+            prompt = f"{prompt}\n\nAdditional customization:\n{extra_context}"
 
         adapted_text = await self._call_llm(prompt)
 
@@ -248,6 +257,7 @@ class ContentAdapterService:
         age_range: tuple[int, int],
         chapter_count: int,
         adapted_content: str,
+        extra_context: str = "",
     ) -> dict:
         """生成绘本结构（标题、简介、章节大纲）
 
@@ -263,6 +273,9 @@ class ContentAdapterService:
         Returns:
             包含 title, summary, chapters 的字典
         """
+        adapted_context = adapted_content
+        if extra_context:
+            adapted_context = f"{adapted_content}\n\n[Customization]\n{extra_context}"
         prompt = render_prompt(
             "book_structure",
             topic=topic,
@@ -270,7 +283,7 @@ class ContentAdapterService:
             max_age=age_range[1],
             language_name=self._get_language_name(language),
             chapter_count=chapter_count,
-            adapted_content=adapted_content[:2000],
+            adapted_content=adapted_context[:2000],
         )
         response = await self._call_llm(prompt)
 
@@ -309,6 +322,7 @@ class ContentAdapterService:
         age_range: tuple[int, int],
         adapted_content: str,
         include_illustration: bool = True,
+        extra_context: str = "",
     ) -> list[dict]:
         """一次性生成所有章节内容
 
@@ -334,6 +348,9 @@ class ContentAdapterService:
             illustration_field = ',\n            "illustration_prompt": "English illustration description, 50-100 words"'
             illustration_instruction = "\n5. Provide English illustration descriptions for each chapter, suitable for AI image generation, including scene, characters, style, etc."
 
+        adapted_context = adapted_content
+        if extra_context:
+            adapted_context = f"{adapted_content}\n\n[Customization]\n{extra_context}"
         prompt = render_prompt(
             "all_chapters",
             topic=topic,
@@ -341,7 +358,7 @@ class ContentAdapterService:
             max_age=age_range[1],
             language_name=self._get_language_name(language),
             chapters_str=chapters_str,
-            adapted_content=adapted_content[:2500],
+            adapted_content=adapted_context[:2500],
             illustration_instruction=illustration_instruction,
             illustration_field=illustration_field,
         )

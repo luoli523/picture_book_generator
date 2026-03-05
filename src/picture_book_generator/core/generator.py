@@ -25,6 +25,47 @@ class PictureBookGenerator:
         self.settings = settings or Settings()
         self.content_adapter = ContentAdapterService(self.settings)
 
+    def _build_customization_context(self, config: BookConfig) -> str:
+        """构建个性化生成上下文，注入到LLM提示词"""
+        interest_text = ", ".join(config.interests) if config.interests else "none"
+        return (
+            "Customization requirements:\n"
+            f"- Child gender: {config.child_gender}\n"
+            f"- Reading level: {config.reading_level}\n"
+            f"- Interests: {interest_text}\n"
+            f"- Style theme: {config.style_theme}\n"
+            f"- Narration tone: {config.narration_tone}\n"
+            f"- Education goal: {config.education_goal}\n"
+            f"- Chapter length preference: {config.chapter_length}\n"
+            "- Prioritize a warm, age-appropriate, parent-friendly storytelling style.\n"
+        )
+
+    async def _collect_knowledge(self, config: BookConfig) -> dict:
+        """按来源模式收集知识内容"""
+        parent_story = config.parent_story.strip()
+        topic_with_interest = config.topic
+        if config.interests:
+            topic_with_interest = f"{config.topic} {' '.join(config.interests)}"
+
+        # 仅使用家长故事
+        if config.source_mode == "parent_story" and parent_story:
+            return {
+                "topic": config.topic,
+                "content": [parent_story],
+                "sources": ["Parent provided story"],
+            }
+
+        # 主题搜索（默认）
+        async with KnowledgeSearchService(self.settings) as knowledge_service:
+            knowledge = await knowledge_service.search(topic_with_interest)
+
+        # 混合模式：搜索 + 家长故事
+        if config.source_mode == "hybrid" and parent_story:
+            knowledge["content"].append(f"[Parent Story]\n{parent_story}")
+            knowledge["sources"].append("Parent provided story")
+
+        return knowledge
+
     async def generate(self, config: BookConfig) -> PictureBook:
         """生成绘本
 
@@ -40,9 +81,8 @@ class PictureBookGenerator:
             console=console,
         ) as progress:
             # 步骤1: 搜索知识
-            task = progress.add_task(f"正在搜索关于「{config.topic}」的知识...", total=None)
-            async with KnowledgeSearchService(self.settings) as knowledge_service:
-                knowledge = await knowledge_service.search(config.topic)
+            task = progress.add_task(f"正在准备关于「{config.topic}」的素材...", total=None)
+            knowledge = await self._collect_knowledge(config)
             progress.update(task, completed=True)
 
             # 步骤2: 适配内容
@@ -51,6 +91,7 @@ class PictureBookGenerator:
                 knowledge=knowledge,
                 age_range=config.age_range,
                 language=config.language,
+                extra_context=self._build_customization_context(config),
             )
             progress.update(task, completed=True)
 
@@ -84,6 +125,7 @@ class PictureBookGenerator:
             age_range=config.age_range,
             chapter_count=config.chapter_count,
             adapted_content=adapted_content.get("summary", ""),
+            extra_context=self._build_customization_context(config),
         )
 
         chapter_titles = structure.get("chapters", [])
@@ -142,6 +184,7 @@ class PictureBookGenerator:
             age_range=config.age_range,
             adapted_content=adapted_content.get("summary", ""),
             include_illustration=config.include_illustrations,
+            extra_context=self._build_customization_context(config),
         )
 
         # 更新章节内容
@@ -154,4 +197,3 @@ class PictureBookGenerator:
                     chapter.illustration_prompt = chapter_data.get("illustration_prompt")
 
         return book
-

@@ -11,6 +11,7 @@
 
 - [功能特性](#-功能特性)
 - [快速开始](#-快速开始)
+- [运行环境（.venv）](#-运行环境venv)
 - [Web 应用](#-web-应用)
 - [安装](#-安装)
 - [配置](#配置)
@@ -47,8 +48,7 @@
 # 1. 克隆并安装
 git clone https://github.com/luoli523/picture_book_generator.git
 cd picture_book_generator
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt  # 安装依赖
+make setup  # 创建 .venv 并安装依赖 + 安装 picture-book 命令
 
 # 2. 配置 API（复制并编辑 .env 文件）
 cp .env.example .env  # 然后填入 API_KEY
@@ -61,19 +61,63 @@ picture-book generate ocean
 picture-book generate dinosaur --no-nlm-slides
 ```
 
+## 🐍 运行环境（.venv）
+
+本项目统一使用项目根目录下的 `.venv` 作为 Python 运行环境。
+
+```bash
+# 首次初始化
+make setup
+```
+
+```bash
+# 每次新开终端后
+cd picture_book_generator
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+```
+
+```bash
+# 退出虚拟环境
+deactivate
+```
+
+如果你不想手动激活，也可以直接调用：
+
+```bash
+.venv/bin/python app.py
+.venv/bin/python -m pytest -v
+```
+
+推荐优先使用 `Makefile`（所有 Python 命令都会固定走 `.venv`）：
+
+```bash
+make help
+make api-dev
+make gradio-dev
+make test
+```
+
 ## 🌐 Web 应用
+
+### 新架构 MVP（Next.js + FastAPI）
+
+我们正在从 Gradio 迁移到前后端分离架构。当前已提供可运行的 MVP：
+- 前端：`apps/web`（Next.js）
+- API：`apps/api`（FastAPI）
+
+快速联调文档见：[`docs/web_mvp_quickstart.md`](docs/web_mvp_quickstart.md)
 
 ### 本地运行 Web 界面
 
 ```bash
-# 安装 Web 应用依赖
-pip install -e ".[web,notebooklm]"
+# 初始化环境（首次）
+make setup
 
 # 配置 API（编辑 .env 文件）
 cp .env.example .env  # 填入 LLM API Key
 
 # 启动 Gradio Web 应用
-python app.py
+make gradio-dev
 
 # 访问 http://localhost:7860
 ```
@@ -104,19 +148,16 @@ python app.py
 git clone https://github.com/luoli523/picture_book_generator.git
 cd picture_book_generator
 
-# 创建虚拟环境（推荐，需要 Python 3.10+）
+# 一键创建 .venv 并安装所有依赖（推荐）
+make setup
+
+# 或手动方式（等价）
 python3 -m venv .venv
 source .venv/bin/activate  # Linux/macOS
-# 或 .venv\Scripts\activate  # Windows
-
-# 安装依赖（包含 NotebookLM、PyMuPDF 等完整功能）
-pip install -r requirements.txt
-
-# 或使用可选依赖安装
-pip install -e .                   # 仅核心功能
-pip install -e ".[notebooklm]"     # + NotebookLM Slides
-pip install -e ".[web]"            # + Gradio Web 界面
-pip install -e ".[web,notebooklm]" # 全部功能
+# .venv\Scripts\activate   # Windows
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -e .
 
 # 创建配置文件
 cp .env.example .env
@@ -479,7 +520,7 @@ picture_book_generator/
 |------|------|
 | `python3 download_slides.py list` | 列出所有 NotebookLM 笔记本 |
 | `python3 download_slides.py <ID>` | 手动下载 Slides（备用方案） |
-| `python app.py` | 启动 Gradio Web 界面（需安装 `gradio`） |
+| `python app.py` | 启动 Gradio Web 界面（需先激活 `.venv` 并安装 `gradio`） |
 
 ## 🐛 故障排除
 
@@ -527,23 +568,22 @@ notebooklm login
 # 确保已激活虚拟环境
 source .venv/bin/activate  # Linux/macOS
 # 或重新安装
-pip install -e .
+python -m pip install -e .
 ```
 
 ## 👨‍💻 开发
 
 ```bash
-# 安装开发依赖
-pip install -e ".[dev]"
+# 推荐（统一走 .venv）
+make test
+make lint
+make format
 
-# 运行测试（包含模型、搜索、内容适配、生成器的 mock 测试）
-pytest -v
-
-# 代码检查
-ruff check src/ tests/
-
-# 格式化
-ruff format .
+# 或手动执行（需激活 .venv）
+source .venv/bin/activate  # Linux/macOS
+python -m pytest -v
+python -m ruff check src/ tests/ apps/
+python -m ruff format src/ tests/ apps/
 ```
 
 ## 🤝 贡献

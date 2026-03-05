@@ -2,6 +2,11 @@
 
 本指南介绍如何将儿童绘本生成器部署为 Web 应用。
 
+## 🐍 Python 运行环境约定
+
+- 本地运行或自托管服务器：统一使用项目根目录 `.venv`
+- Hugging Face Spaces / Railway / Render：由平台自动管理 Python 运行环境，无需手动创建 `.venv`
+
 ## 🚀 部署选项
 
 ### 选项 1: Hugging Face Spaces（推荐，免费）
@@ -24,9 +29,6 @@ Hugging Face Spaces 提供免费的 Gradio 应用托管。
    
    # 复制项目文件
    cp -r /path/to/picture_book_generator/* .
-   
-   # 创建 requirements.txt
-   cp requirements-web.txt requirements.txt
    
    # 提交
    git add .
@@ -102,7 +104,7 @@ Railway 提供更好的性能和更长的超时时间。
    - 连接到你的 GitHub 仓库
 
 2. **配置**
-   - **Build Command**: `pip install -r requirements-web.txt`
+   - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `python app.py`
    - **Environment**: Python 3.10+
 
@@ -119,8 +121,17 @@ Railway 提供更好的性能和更长的超时时间。
 最简单的方式，适合个人使用或开发测试。
 
 ```bash
+# 进入项目目录
+cd picture_book_generator
+
+# 创建并激活 .venv
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
 # 安装依赖
-pip install -e ".[notebooklm,web]"
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -e .
 
 # 配置环境变量
 cp .env.example .env
