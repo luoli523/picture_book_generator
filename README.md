@@ -1,625 +1,307 @@
 # Picture Book Generator 儿童绘本生成器
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> 🎨 根据主题自动生成适合 7-10 岁儿童阅读的绘本读物，支持一键生成 NotebookLM Slides 演示文稿。
+> AI 驱动的儿童绘本创作平台 — 输入主题，自动搜索知识、适配儿童语言、生成结构化绘本，并通过 NotebookLM 生成 Slides、视频、音频、信息图等多种产品。
 
-**主要能力**：智能知识搜索 + LLM 内容适配 + 结构化绘本 + NotebookLM Slides 生成
+## 功能概览
 
-## 📋 目录
+**核心流程**: 知识搜索 → LLM 内容适配 → 结构化 Markdown 绘本 → NotebookLM 多产品生成
 
-- [功能特性](#-功能特性)
-- [快速开始](#-快速开始)
-- [Web 应用](#-web-应用)
-- [安装](#-安装)
-- [配置](#配置)
-- [使用方法](#使用方法)
-- [使用示例和最佳实践](#-使用示例和最佳实践)
-- [项目结构](#-项目结构)
-- [工作流程](#-工作流程)
-- [CLI 命令速查](#-cli-命令速查)
-- [故障排除](#-故障排除)
-- [技术栈](#-技术栈)
-- [开发](#-开发)
+- **Web 应用**: Next.js 15 + Tailwind CSS v4 前端 + FastAPI 后端，SSE 实时进度推送
+- **CLI 工具**: Typer + Rich 命令行界面，支持完整的生成和分享流程
+- **多 LLM 支持**: Claude、GPT、Gemini、Grok 四大模型提供商
+- **智能搜索**: Tavily + SerpAPI + Wikipedia 并行搜索，合并知识
+- **7 种 NotebookLM 产品**:
+  | 产品 | 说明 | 可选参数 |
+  |------|------|----------|
+  | Slides | PDF 演示文稿 | 格式 (detailed/presenter)、长度 (default/short) |
+  | Video | 动画视频 | 风格 (kawaii/anime/watercolor/paper_craft 等 9 种)、格式 |
+  | Audio | 播客音频 | 格式 (deep_dive/brief/critique/debate)、长度 |
+  | Infographic | 信息图 | 方向 (landscape/portrait/square)、详细度 |
+  | Quiz | 知识问答 | 难度 (easy/medium/hard)、数量 |
+  | Flashcards | 闪卡 | - |
+  | Mind Map | 思维导图 | - |
+- **Telegram 分享**: Slides PDF 切图 + 双语社交媒体文案一键推送
+- **双语支持**: 中文、英文
 
-## ✨ 功能特性
+---
 
-- **智能主题搜索**: 自动从维基百科、Tavily、SerpAPI 搜索相关知识
-- **儿童语言适配**: 使用 LLM 将复杂知识转化为儿童可理解的语言
-- **多语言支持**: 中文、英文、日文、韩文（默认英文）
-- **多 LLM 提供商**: 支持 Claude、ChatGPT、Gemini、Grok
-- **结构化输出**: 生成包含章节、插图描述、知识要点的完整 Markdown 绘本
-- **NotebookLM Slides（默认启用）**: 
-  - 一键自动生成绘本 + Slides PDF
-  - 上传到统一的"儿童绘本" notebook
-  - 支持自定义生成指令、格式和长度
-  - 智能文件管理（保留完整文件名、避免重名）
-  - 优雅错误处理（失败时不影响绘本生成）
-- **Slides 图片拆分**: 自动将 Slides PDF 拆分为单页 PNG 图片
-- **Telegram 分享**: 一键发送 Slides 图片 + 双语（中/英）社交媒体文案到 Telegram
-- **Prompt 模板化**: 所有 LLM prompt 独立为文件，易于定制优化
-- **Web 应用**: Gradio Web 界面，可视化配置和实时生成
+## 快速开始
 
-## ⚡ 快速开始
+### 方式一：Web 应用（推荐）
 
 ```bash
-# 1. 克隆并安装
-git clone https://github.com/luoli523/picture_book_generator.git
-cd picture_book_generator
+# 1. 安装 Python 依赖
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt  # 安装依赖
-
-# 2. 配置 API（复制并编辑 .env 文件）
-cp .env.example .env  # 然后填入 API_KEY
-
-# 3. 生成你的第一本绘本（自动生成 Markdown + Slides PDF）
-notebooklm login  # 首次使用需要登录（一次性操作）
-picture-book generate ocean
-
-# 4. （可选）仅生成绘本，不生成 Slides
-picture-book generate dinosaur --no-nlm-slides
-```
-
-## 🌐 Web 应用
-
-### 本地运行 Web 界面
-
-```bash
-# 安装 Web 应用依赖
 pip install -e ".[web,notebooklm]"
 
-# 配置 API（编辑 .env 文件）
-cp .env.example .env  # 填入 LLM API Key
+# 2. 配置环境变量
+cp .env.example .env   # 编辑 .env 填入 API Key
 
-# 启动 Gradio Web 应用
-python app.py
-
-# 访问 http://localhost:7860
-```
-
-### 在线访问
-
-🚀 **推荐**: 访问我们部署的在线版本（即将上线）
-
-或查看 [DEPLOYMENT.md](DEPLOYMENT.md) 了解如何将应用部署到：
-- **Hugging Face Spaces**（免费）
-- **Railway** ($5-10/月)
-- **Render**（免费层可用）
-
-### Web 界面功能
-
-- ✅ 直观的参数配置界面
-- ✅ 实时生成进度显示
-- ✅ 一键下载 Markdown 和 PDF
-- ✅ 示例模板快速开始
-- ✅ 移动端自适应
-
-![Web 界面预览](https://via.placeholder.com/800x400?text=Web+Interface+Coming+Soon)
-
-## 📦 安装
-
-```bash
-# 克隆项目
-git clone https://github.com/luoli523/picture_book_generator.git
-cd picture_book_generator
-
-# 创建虚拟环境（推荐，需要 Python 3.10+）
-python3 -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# 或 .venv\Scripts\activate  # Windows
-
-# 安装依赖（包含 NotebookLM、PyMuPDF 等完整功能）
-pip install -r requirements.txt
-
-# 或使用可选依赖安装
-pip install -e .                   # 仅核心功能
-pip install -e ".[notebooklm]"     # + NotebookLM Slides
-pip install -e ".[web]"            # + Gradio Web 界面
-pip install -e ".[web,notebooklm]" # 全部功能
-
-# 创建配置文件
-cp .env.example .env
-```
-
-## 配置
-
-### 1. 创建配置文件
-
-```bash
-cp .env.example .env
-```
-
-### 2. 配置LLM提供商
-
-支持以下LLM提供商，选择其一配置即可：
-
-| 提供商 | 环境变量 | 模型示例 |
-|--------|----------|----------|
-| Anthropic (Claude) | `ANTHROPIC_API_KEY` | claude-sonnet-4-20250514 |
-| OpenAI (ChatGPT) | `OPENAI_API_KEY` | gpt-4o, gpt-5 |
-| Google (Gemini) | `GOOGLE_API_KEY` | gemini-2.0-flash |
-| xAI (Grok) | `GROK_API_KEY` | grok-2-latest |
-
-**.env 配置示例**:
-
-```bash
-# 选择默认LLM提供商: anthropic, openai, gemini, grok
-DEFAULT_LLM_PROVIDER=openai
-
-# OpenAI配置
-OPENAI_API_KEY=sk-xxx...
-OPENAI_MODEL=gpt-5
-
-# 或使用Claude
-# DEFAULT_LLM_PROVIDER=anthropic
-# ANTHROPIC_API_KEY=sk-ant-xxx...
-# ANTHROPIC_MODEL=claude-sonnet-4-20250514
-
-# 通用配置
-MAX_TOKENS=4096
-OUTPUT_DIR=./output
-```
-
-### 3. 可选：配置搜索服务
-
-搜索服务用于获取主题相关的知识内容。如果不配置，系统会使用维基百科和LLM自身知识。
-
-| 服务 | 说明 | 获取地址 | 免费额度 |
-|------|------|----------|----------|
-| **Tavily** | AI优化搜索，返回结构化内容，推荐用于RAG | https://tavily.com | 1000次/月 |
-| **SerpAPI** | Google搜索结果，包含知识图谱 | https://serpapi.com | 100次/月 |
-
-```bash
-# Tavily - 推荐，专为AI应用优化
-TAVILY_API_KEY=tvly-xxxxx
-
-# SerpAPI - Google搜索结果
-SERP_API_KEY=xxxxx
-```
-
-**搜索优先级**: Tavily > SerpAPI > Wikipedia (并行执行，结果合并)
-
-### 4. 可选：配置 Telegram 推送
-
-将生成的 Slides 图片和双语文案一键发送到 Telegram。
-
-```bash
-# 1. 找 @BotFather 创建 Bot，获取 Token
-# 2. 获取 Chat ID: 给 Bot 发消息后访问
-#    https://api.telegram.org/bot<TOKEN>/getUpdates
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_CHAT_ID=your_chat_id
-```
-
-使用时添加 `--telegram` 参数即可：
-
-```bash
-picture-book generate Rocket --lang zh --telegram
-```
-
-## 使用方法
-
-### 命令行
-
-```bash
-# 基本用法 - 生成英文绘本 + Slides（默认）
-picture-book generate ocean
-
-# 生成中文绘本 + Slides
-picture-book generate 恐龙 --lang zh
-
-# 仅生成绘本，不生成 Slides
-picture-book generate dinosaur --no-nlm-slides
-
-# 生成绘本 + Slides + 发送到 Telegram
-picture-book generate Rocket --lang zh --telegram
-
-# 自定义参数
-picture-book generate ocean \
-    --lang en \
-    --chapters 8 \
-    --min-age 6 \
-    --max-age 9 \
-    --output my_book.md
-
-# 查看支持的语言
-picture-book languages
-
-# 查看版本
-picture-book version
-```
-
-### NotebookLM 集成与 Slides 生成
-
-**默认行为（推荐）**：`generate` 命令自动生成绘本 + Slides PDF
-
-NotebookLM 集成特性：
-- ✨ **默认启用**：一键生成绘本和 Slides
-- 📁 统一管理：所有绘本上传到"儿童绘本" notebook
-- 📎 保留文件名：上传时保留完整文件名（包括 .md 后缀）
-- 🔄 智能重命名：同名文件自动添加时间戳（如 `ocean_20250102_123456.md`）
-- 🎯 精准引用：Slides 仅使用指定的绘本内容
-- 🛡️ 优雅容错：连接或生成失败时不影响绘本输出
-
-```bash
-# 首次使用：登录 NotebookLM（一次性操作）
+# 3. 登录 NotebookLM（首次使用）
 notebooklm login
 
-# 基础用法（自动生成绘本 + Slides，使用默认设置）
+# 4. 启动 FastAPI 后端
+uvicorn api.main:app --port 8000
+
+# 5. 启动 Next.js 前端（新终端）
+cd web
+npm install
+npm run dev
+
+# 访问 http://localhost:3000
+```
+
+### 方式二：CLI 命令行
+
+```bash
+# 安装
+pip install -e ".[notebooklm]"
+cp .env.example .env   # 编辑 .env
+
+# 首次登录 NotebookLM
+notebooklm login
+
+# 生成绘本 + Slides（默认）
 picture-book generate ocean
 
-# 默认设置：
-# - instructions: "创建适合儿童和少年阅读的，卡通风格"
-# - format: detailed（详细版本）
-# - length: default（默认长度）
+# 生成中文绘本
+picture-book generate 恐龙 --lang zh
 
 # 仅生成绘本，跳过 Slides
 picture-book generate dinosaur --no-nlm-slides
 
-# 自定义 Slides 生成
-picture-book generate ocean \
-  --nlm-instructions "创建色彩鲜艳、适合儿童的动画风格演示文稿" \
-  --nlm-format presenter \
-  --nlm-length short
-
-# 参数说明：
-# --nlm-instructions: 自定义生成指令
-# --nlm-format:      格式选项（默认: detailed）
-#   - detailed:   详细版本（更多内容）
-#   - presenter:  演讲者版本（演讲笔记）
-# --nlm-length:      长度选项（默认: default）
-#   - default:    默认长度
-#   - short:      简短版本
-
-# 手动上传已有绘本到 NotebookLM
-picture-book upload-to-notebooklm ./output/dinosaur.md
-
-# 从已有 NotebookLM 笔记本生成 Slides
-picture-book generate-slides https://notebooklm.google.com/notebook/xxx
-# 或直接使用 notebook ID
-picture-book generate-slides notebook-123456
-
-# 备用工具：手动下载 Slides（当自动下载失败时）
-python3 download_slides.py list                    # 列出所有笔记本
-python3 download_slides.py <notebook_id>          # 下载指定笔记本的 Slides
+# 生成 + 发送到 Telegram
+picture-book generate Rocket --lang zh --telegram
 ```
 
-## 💡 使用示例和最佳实践
+---
 
-### 示例 1：基础使用（默认生成 Slides）
-
-```bash
-# 生成英文绘本 + Slides（默认）
-picture-book generate ocean
-
-# 生成中文绘本 + Slides
-picture-book generate 恐龙 --lang zh
-
-# 仅生成绘本，不生成 Slides
-picture-book generate dinosaur --no-nlm-slides
-
-# 自定义年龄和章节
-picture-book generate space --min-age 8 --max-age 12 --chapters 8
-```
-
-### 示例 2：自定义 Slides 风格
-
-```bash
-# 简短版本，演讲者格式
-picture-book generate ocean \
-  --nlm-instructions "创建简洁的演讲稿格式，适合课堂演讲" \
-  --nlm-format presenter \
-  --nlm-length short
-
-# 详细版本，教学重点
-picture-book generate space \
-  --nlm-instructions "强调科学知识点，添加趣味问题，适合小学科学课" \
-  --nlm-format detailed
-```
-
-### 示例 3：手动上传和 Slides 生成
-
-```bash
-# 方式 1：先生成绘本，后续手动上传
-picture-book generate dinosaur --no-nlm-slides
-picture-book upload-to-notebooklm ./output/dinosaur.md
-
-# 方式 2：从已有 notebook 生成 Slides
-picture-book generate-slides https://notebooklm.google.com/notebook/xxx
-```
-
-### 最佳实践
-
-1. **LLM 选择**：
-   - Claude：最适合儿童内容创作，语言生动
-   - GPT-4：知识全面，结构清晰
-   - Gemini：多语言支持好，成本低
-
-2. **主题选择**：
-   - ✅ 具体主题：`"恐龙"`、`"太阳系"`、`"海洋生物"`
-   - ❌ 抽象主题：`"科学"`、`"自然"`（范围太广）
-
-3. **NotebookLM Slides**：
-   - 默认自动生成，无需额外参数
-   - 首次使用需运行 `notebooklm login` 登录（一次性）
-   - 默认设置已优化儿童阅读体验
-   - 使用 `--nlm-instructions` 可针对特定场景定制
-   - 生成时间通常 2-5 分钟，失败时会优雅跳过
-   - 需要快速生成时使用 `--no-nlm-slides` 跳过
-
-4. **Prompt 定制**：
-   - 所有 prompt 在 `src/picture_book_generator/prompts/` 目录
-   - 可直接编辑 `.txt` 文件来优化生成效果
-   - 修改后无需重启，立即生效
-
-## 📁 项目结构
+## 项目架构
 
 ```
 picture_book_generator/
-├── requirements.txt                    # 项目依赖
-├── pyproject.toml                      # 项目配置和构建
-├── app.py                              # Gradio Web 应用入口
-├── download_slides.py                  # NotebookLM Slides 备用下载工具
-├── DEPLOYMENT.md                       # Web 应用部署指南
-├── src/
-│   └── picture_book_generator/
-│       ├── __init__.py
-│       ├── cli.py                      # 命令行接口（Typer + Rich）
-│       ├── core/
-│       │   ├── generator.py            # 绘本生成器核心逻辑
-│       │   └── models.py               # Pydantic 数据模型
-│       ├── services/
-│       │   ├── knowledge_search.py     # 知识搜索（Tavily/SerpAPI/Wikipedia）
-│       │   ├── content_adapter.py      # LLM 内容适配服务
-│       │   ├── notebooklm.py           # NotebookLM 集成（notebooklm-py SDK）
-│       │   ├── pdf_splitter.py         # PDF 拆分为图片（PyMuPDF）
-│       │   └── telegram.py             # Telegram 推送服务
-│       ├── prompts/                    # LLM Prompt 模板目录
-│       │   ├── __init__.py
-│       │   ├── adapt_content.txt       # 内容适配 prompt
-│       │   ├── generate_from_scratch.txt
-│       │   ├── book_structure.txt      # 书籍结构生成 prompt
-│       │   └── all_chapters.txt        # 章节内容生成 prompt
-│       └── utils/
-│           └── config.py               # 配置管理（pydantic-settings）
-├── tests/
-│   ├── test_models.py                  # 数据模型测试
-│   ├── test_knowledge_search.py        # 知识搜索测试
-│   ├── test_content_adapter.py         # 内容适配服务测试（mock）
-│   └── test_generator.py              # 生成器核心逻辑测试（mock）
-├── output/                             # 生成的绘本和 Slides 输出目录
-├── .env.example                        # 环境变量配置模板
-└── README.md
+├── src/picture_book_generator/     # Python 核心库
+│   ├── cli.py                      # Typer CLI 入口
+│   ├── core/
+│   │   ├── generator.py            # 绘本生成器（编排搜索→适配→结构→章节）
+│   │   └── models.py               # Pydantic 数据模型 (BookConfig, Chapter, PictureBook)
+│   ├── services/
+│   │   ├── knowledge_search.py     # 并行知识搜索 (Tavily/SerpAPI/Wikipedia)
+│   │   ├── content_adapter.py      # 多 LLM 内容适配（Grok 通过 OpenAI SDK + 自定义 base URL）
+│   │   ├── notebooklm.py           # NotebookLM 集成 (notebooklm-py SDK)
+│   │   ├── pdf_splitter.py         # PDF → PNG 拆分 (PyMuPDF)
+│   │   └── telegram.py             # Telegram Bot API 推送
+│   ├── prompts/                    # LLM Prompt 模板 (.txt 文件，str.format 渲染)
+│   └── utils/config.py             # pydantic-settings 配置 (从 .env 加载)
+├── api/                            # FastAPI 后端
+│   ├── main.py                     # 应用入口 (CORS, /files/ 静态挂载, /api/health)
+│   ├── schemas.py                  # Pydantic 请求/响应模型 + 所有产品选项枚举
+│   └── routers/generate.py         # 生成 API (POST + SSE 流 + 轮询状态)
+├── web/                            # Next.js 16 前端
+│   ├── app/
+│   │   ├── page.tsx                # 首页 (Hero + 功能展示)
+│   │   ├── create/CreateForm.tsx   # 创建表单 (孩子信息 + 内容 + 产品选择)
+│   │   ├── generate/[id]/          # 生成进度页 (SSE EventSource 实时显示)
+│   │   └── result/[id]/            # 结果展示页 (产品下载 + Markdown 预览)
+│   ├── lib/api.ts                  # TypeScript API 类型 + fetch 封装
+│   └── next.config.ts              # API 代理 (/api/* → FastAPI:8000)
+├── tests/                          # pytest + pytest-asyncio (全 mock，无网络调用)
+├── output/                         # 生成产物输出目录
+└── .env.example                    # 环境变量模板
 ```
 
-## 🔄 工作流程
-
-### 基础绘本生成流程
+### 数据流
 
 ```
-用户输入主题 → 知识搜索 → LLM内容适配 → 结构化生成 → Markdown输出
-     ↓              ↓            ↓               ↓              ↓
-   "Ocean"    Tavily/Wiki    GPT/Claude   Title+Chapters    ocean.md
-              SerpAPI        Gemini/Grok   Illustrations
+                     Web 前端                                    FastAPI 后端
+┌──────────────────────────────────────┐    ┌──────────────────────────────────────────┐
+│  CreateForm                          │    │  POST /api/generate                      │
+│  ├─ 孩子信息 (姓名/性别/年龄/语言)    │───▶│  ├─ 创建后台任务 (asyncio.create_task)   │
+│  ├─ 内容 (主题 or 故事原文)           │    │  └─ 返回 job_id                          │
+│  └─ 产品选择 (slides/video/audio...) │    │                                          │
+│                                      │    │  GET /api/generate/{id}/stream (SSE)     │
+│  GenerationProgress                  │◀──▶│  ├─ 知识搜索 → progress 事件              │
+│  └─ EventSource 实时显示步骤          │    │  ├─ 内容适配 → progress 事件              │
+│                                      │    │  ├─ 绘本结构 → book_title 事件            │
+│  ResultDashboard                     │    │  ├─ 章节生成 → progress 事件              │
+│  ├─ 绘本信息卡片                     │◀──▶│  ├─ NotebookLM 上传 → progress 事件       │
+│  ├─ 产品网格 (状态 + 下载)           │    │  ├─ 产品生成 → product_start/complete     │
+│  └─ Markdown 预览                    │    │  └─ done 事件                             │
+└──────────────────────────────────────┘    └──────────────────────────────────────────┘
 ```
 
-### NotebookLM Slides 生成流程
+---
 
+## 配置
+
+### 环境变量 (.env)
+
+```bash
+# LLM 提供商（选其一配置即可）
+DEFAULT_LLM_PROVIDER=grok        # anthropic | openai | gemini | grok
+
+ANTHROPIC_API_KEY=sk-ant-xxx     # Claude
+OPENAI_API_KEY=sk-xxx            # GPT
+GOOGLE_API_KEY=xxx               # Gemini
+GROK_API_KEY=xai-xxx             # Grok
+XAI_BASE_URL=https://api.x.ai/v1
+
+# 搜索服务（可选，不配则仅用 Wikipedia + LLM 知识）
+TAVILY_API_KEY=tvly-xxx          # AI 优化搜索，推荐 (1000 次/月免费)
+SERP_API_KEY=xxx                 # Google 搜索 (100 次/月免费)
+
+# Telegram 推送（可选）
+TELEGRAM_BOT_TOKEN=xxx
+TELEGRAM_CHAT_ID=xxx
+
+# 输出
+OUTPUT_DIR=./output
+MAX_TOKENS=65535
 ```
-绘本 Markdown → 上传到"儿童绘本"notebook → NotebookLM AI生成 → 下载 Slides PDF
-      ↓                    ↓                        ↓                ↓
-   ocean.md         Source: ocean          卡通风格详细版      ocean_slides.pdf
-              (自动处理同名文件)         (可自定义指令)
+
+### 安装选项
+
+```bash
+pip install -e .                        # 仅核心 CLI
+pip install -e ".[notebooklm]"          # + NotebookLM 产品生成
+pip install -e ".[web,notebooklm]"      # + FastAPI 后端
+pip install -e ".[dev]"                 # + pytest, ruff
+pip install -e ".[dev,web,notebooklm]"  # 全部
 ```
 
-### 详细步骤
+---
 
-1. **主题输入**: 用户提供主题（如 "Ocean"、"恐龙"等）
-2. **知识搜索**: 并行搜索 Tavily、SerpAPI、Wikipedia，合并结果
-3. **内容适配**: LLM 将知识转化为儿童语言（使用 prompts/ 中的模板）
-4. **结构生成**: 
-   - 生成书籍标题和摘要
-   - 生成章节大纲
-   - 生成每章详细内容、插图描述、知识要点
-5. **输出**: 
-   - Markdown 文件保存到 `output/` 目录
-   - （默认启用）上传到 NotebookLM 生成 Slides PDF
+## Web 应用详情
 
-## 🚀 CLI 命令速查
+### 页面流程
+
+1. **首页** (`/`) — Hero 展示 + "Start Creating" 入口
+2. **创建页** (`/create`) — 三段式表单：
+   - 卡片 A：孩子信息（姓名、性别、年龄范围滑块、语言）
+   - 卡片 B：内容（主题模式 / 故事模式，8 个热门主题快选，章节数滑块）
+   - 卡片 C：产品选择（7 种产品复选卡片，各自可展开配置参数）
+3. **生成页** (`/generate/[id]`) — SSE 实时进度条 + 绘本标题预览
+4. **结果页** (`/result/[id]`) — 绘本信息 + 产品网格（状态/下载） + Markdown 折叠预览
+
+### API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/health` | 健康检查 |
+| `GET` | `/api/config` | 前端配置（可用 LLM、默认值等） |
+| `POST` | `/api/generate` | 创建生成任务，返回 `{ job_id }` |
+| `GET` | `/api/generate/{id}/stream` | SSE 实时事件流 |
+| `GET` | `/api/generate/{id}/status` | 轮询任务状态 |
+| `GET` | `/files/*` | 静态文件服务（生成产物下载） |
+
+### 本地开发
+
+```bash
+# 终端 1: FastAPI 后端
+source .venv/bin/activate
+uvicorn api.main:app --port 8000 --reload
+
+# 终端 2: Next.js 前端
+cd web
+npm run dev    # http://localhost:3000
+```
+
+Next.js 通过 `next.config.ts` 中的 rewrites 将 `/api/*` 和 `/files/*` 代理到 FastAPI 8000 端口。
+
+---
+
+## CLI 命令速查
 
 ### 核心命令
 
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `generate <主题>` | 生成绘本 + Slides（默认：英文，5章，7-10岁） | `picture-book generate ocean` |
-| `generate <主题> --no-nlm-slides` | 仅生成绘本，跳过 Slides | `picture-book generate ocean --no-nlm-slides` |
-| `languages` | 列出支持的语言 | `picture-book languages` |
-| `version` | 显示版本信息 | `picture-book version` |
+| 命令 | 说明 |
+|------|------|
+| `picture-book generate <主题>` | 生成绘本 + Slides（默认英文，5 章，7-10 岁） |
+| `picture-book generate <主题> --no-nlm-slides` | 仅生成绘本 |
+| `picture-book share <PDF>` | Slides PDF 切图 + 发送 Telegram |
+| `picture-book upload-to-notebooklm <file>` | 手动上传到 NotebookLM |
+| `picture-book generate-slides <URL\|ID>` | 从已有 notebook 生成 Slides |
+| `picture-book languages` | 列出支持语言 |
+| `picture-book version` | 版本信息 |
 
 ### 生成参数
 
-| 参数 | 简写 | 默认值 | 说明 |
-|------|------|--------|------|
-| `--lang` | `-l` | `en` | 语言：en, zh, ja, ko |
-| `--chapters` | `-c` | `5` | 章节数（3-10） |
-| `--min-age` | - | `7` | 最小目标年龄 |
-| `--max-age` | - | `10` | 最大目标年龄 |
-| `--output` | `-o` | `./output/<主题>.md` | 输出文件路径 |
-| `--nlm-slides/--no-nlm-slides` | - | `启用` | 是否生成 NotebookLM Slides |
-
-### NotebookLM & 分享命令
-
-| 命令 | 说明 |
-|------|------|
-| `notebooklm-login` | 登录 NotebookLM（首次使用前执行：`notebooklm login`） |
-| `upload-to-notebooklm <文件>` | 手动上传绘本到"儿童绘本" notebook |
-| `generate-slides <URL或ID>` | 从已有 notebook 生成 Slides |
-| `share <PDF>` | 将 Slides PDF 切图并发送到 Telegram |
-
-### NotebookLM Slides 参数
-
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `--nlm-instructions` | "创建适合儿童和少年阅读的，卡通风格" | 自定义生成指令 |
-| `--nlm-format` | `detailed` | 格式：detailed（详细）或 presenter（演讲者） |
-| `--nlm-length` | `default` | 长度：default（默认）或 short（简短） |
+| `--lang` / `-l` | `en` | 语言：en, zh |
+| `--chapters` / `-c` | `5` | 章节数 (3-10) |
+| `--min-age` | `7` | 最小目标年龄 |
+| `--max-age` | `10` | 最大目标年龄 |
+| `--output` / `-o` | 自动命名 | 输出文件路径 |
+| `--nlm-slides/--no-nlm-slides` | 启用 | 是否生成 Slides |
+| `--nlm-instructions` | 卡通风格 | 自定义 NotebookLM 指令 |
+| `--nlm-format` | `detailed` | Slides 格式 (detailed/presenter) |
+| `--nlm-length` | `default` | Slides 长度 (default/short) |
+| `--telegram` | 关闭 | 发送到 Telegram |
 
-### Share 命令参数
+---
 
-| 参数 | 说明 |
-|------|------|
-| `--book` / `-b` | 对应的绘本 Markdown 文件（用于生成文案） |
-| `--topic` / `-t` | 绘本主题（不传则从文件名推断） |
-| `--no-telegram` | 仅切图，不发送 Telegram |
-
-### 辅助工具
-
-| 工具 | 说明 |
-|------|------|
-| `python3 download_slides.py list` | 列出所有 NotebookLM 笔记本 |
-| `python3 download_slides.py <ID>` | 手动下载 Slides（备用方案） |
-| `python app.py` | 启动 Gradio Web 界面（需安装 `gradio`） |
-
-## 🐛 故障排除
-
-### NotebookLM 相关
-
-**问题：`Storage file not found`**
-```bash
-# 解决：需要先登录 NotebookLM
-notebooklm login
-# 按提示在浏览器中完成 Google 账号登录
-```
-
-**问题：Slides 生成失败但不想影响绘本生成**
-- ✅ **无需担心**！现在 Slides 生成失败会优雅跳过
-- 绘本会正常生成和保存
-- 系统会显示黄色警告信息和失败原因
-- 如果不需要 Slides，使用 `--no-nlm-slides` 参数
-
-**问题：Slides 生成超时**
-- NotebookLM 生成 Slides 通常需要 2-5 分钟
-- 如果超过 10 分钟，系统会自动超时并跳过
-- 使用备用工具手动下载：`python3 download_slides.py <notebook_id>`
-
-**问题：找不到 Slides 文件**
-- 检查 `output/` 目录
-- 文件命名格式：`<主题>_slides.pdf`（如 `ocean_slides.pdf`）
-- NotebookLM 中的源文件名包含 `.md` 后缀（如 `ocean.md`）
-
-### LLM 相关
-
-**问题：API 调用失败**
-- 检查 `.env` 文件中的 API_KEY 是否正确
-- 确认 `DEFAULT_LLM_PROVIDER` 设置正确
-- 检查 API 配额是否用完
-
-**问题：生成内容质量不佳**
-- 尝试切换不同的 LLM 提供商
-- 编辑 `src/picture_book_generator/prompts/` 中的 prompt 模板
-- 增加 `MAX_TOKENS` 值（在 .env 中）
-
-### 安装相关
-
-**问题：`picture-book` 命令找不到**
-```bash
-# 确保已激活虚拟环境
-source .venv/bin/activate  # Linux/macOS
-# 或重新安装
-pip install -e .
-```
-
-## 👨‍💻 开发
+## 开发
 
 ```bash
 # 安装开发依赖
-pip install -e ".[dev]"
+pip install -e ".[dev,web,notebooklm]"
 
-# 运行测试（包含模型、搜索、内容适配、生成器的 mock 测试）
+# 运行测试
 pytest -v
+pytest tests/test_models.py -v                    # 单文件
+pytest tests/test_generator.py::TestXxx::test_yyy  # 单用例
 
-# 代码检查
-ruff check src/ tests/
-
-# 格式化
+# 代码检查 & 格式化
+ruff check src/ tests/ api/
 ruff format .
+
+# 前端
+cd web
+npm run lint
+npm run build
 ```
 
-## 🤝 贡献
+### 测试说明
 
-欢迎贡献！请：
-1. Fork 本仓库
-2. 创建特性分支：`git checkout -b feature/amazing-feature`
-3. 提交更改：`git commit -m 'Add amazing feature'`
-4. 推送到分支：`git push origin feature/amazing-feature`
-5. 提交 Pull Request
+所有测试通过 mock 运行，无需网络连接。LLM 调用 mock `ContentAdapterService` 方法，搜索 mock `KnowledgeSearchService`。
 
-## 🔮 技术栈
+---
 
-- **CLI**: Typer + Rich（命令行界面和美化输出）
-- **Web**: Gradio（可视化 Web 界面）
-- **LLM**: 多提供商支持（Anthropic、OpenAI、Google、xAI）
-- **搜索**: Tavily API、SerpAPI、Wikipedia API
-- **异步**: asyncio + httpx（并发请求）
-- **配置**: pydantic-settings（类型安全的配置管理）
-- **NotebookLM**: notebooklm-py SDK（Google NotebookLM 接口）
-- **PDF**: PyMuPDF（PDF 拆分为 PNG 图片）
-- **分享**: Telegram Bot API（图片 + 双语文案推送）
-- **Prompt**: 模板化管理（独立 .txt 文件）
-- **测试**: pytest + pytest-asyncio（含 mock 测试）
+## 技术栈
 
-## ✅ 已完成功能
+| 层 | 技术 |
+|----|------|
+| 前端 | Next.js 16 + React 19 + Tailwind CSS v4 + Framer Motion + Lucide Icons |
+| 后端 | FastAPI + Uvicorn + SSE (Server-Sent Events) |
+| CLI | Typer + Rich |
+| LLM | Anthropic SDK, OpenAI SDK, Google GenAI SDK (Grok via OpenAI + 自定义 base URL) |
+| 搜索 | Tavily API, SerpAPI, Wikipedia API (httpx + tenacity 重试) |
+| NotebookLM | notebooklm-py SDK |
+| 配置 | pydantic-settings (.env) |
+| 测试 | pytest + pytest-asyncio (全 mock) |
+| Lint | Ruff (line-length 100, py310, rules E/F/I/N/W) |
 
-- [x] 多语言绘本生成（中英日韩）
-- [x] 多 LLM 提供商支持（Claude、GPT、Gemini、Grok）
-- [x] 知识搜索集成（Tavily、SerpAPI、Wikipedia）
-- [x] Prompt 模板化管理
-- [x] NotebookLM Slides 自动生成（默认启用）
-- [x] NotebookLM 智能文件管理（保留后缀、避免重名）
-- [x] 优雅错误处理（Slides 失败不影响绘本）
-- [x] Slides PDF 拆分为 PNG 图片
-- [x] Telegram 推送（图片 + 双语社交媒体文案）
-- [x] `share` 命令（独立切图 + 分享）
-- [x] Gradio Web 界面
-- [x] 实时进度显示
-- [x] 灵活的 Slides 控制（可选跳过）
-- [x] 单元测试覆盖（mock 测试）
+---
 
-## 🚧 计划功能
+## 故障排除
 
-- [ ] 图片生成集成（DALL-E、Midjourney、Stable Diffusion）
-- [ ] PDF 导出（带排版和插图）
-- [ ] 批量生成模式
-- [ ] 绘本模板系统
+**NotebookLM `Storage file not found`** — 运行 `notebooklm login` 完成 Google 账号登录。
 
-## 📊 生成示例
+**Slides 生成超时** — NotebookLM 产品通常需要 2-5 分钟。超过 10 分钟自动跳过。备用方案：`python3 download_slides.py <notebook_id>`。
 
-### 生成的绘本 Markdown
-- 包含书籍标题和摘要
-- 5-10 个章节，每章包含：
-  - 章节内容（儿童语言）
-  - 插图描述（可用于 AI 图片生成）
-  - 知识要点总结
-- 参考资料链接
+**API 调用失败** — 检查 `.env` 中对应 provider 的 API Key 和 `DEFAULT_LLM_PROVIDER` 设置。
 
-### NotebookLM Slides PDF
-- 自动生成的精美演示文稿
-- 卡通风格、适合儿童
-- 详细版本（默认）或演讲者版本
-- 通常 15-30 页
+**`picture-book` 命令找不到** — 确保虚拟环境已激活，或重新 `pip install -e .`。
 
-## 🔗 相关资源
+**Web 应用 API 404** — 确保 FastAPI 后端运行在 8000 端口，Next.js 代理配置正确。
 
-- **NotebookLM**: https://notebooklm.google.com
-- **notebooklm-py**: https://github.com/teng-lin/notebooklm-py
-- **Tavily AI Search**: https://tavily.com
-- **SerpAPI**: https://serpapi.com
+---
 
-## 📝 License
+## License
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
-
-## 🌟 Star History
-
-如果这个项目对你有帮助，请给个 ⭐️！
+MIT

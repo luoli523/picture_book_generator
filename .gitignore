@@ -45,6 +45,10 @@ output/
 .coverage
 htmlcov/
 
+# Node / Next.js
+node_modules/
+.next/
+
 # OS
 .DS_Store
 Thumbs.db
