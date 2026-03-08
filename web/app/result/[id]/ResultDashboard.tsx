@@ -18,26 +18,27 @@ import {
   ChevronDown,
   PlusCircle,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { getJobStatus, type JobStatus, type ProductType } from "@/lib/api";
+import { useT } from "@/lib/i18n-provider";
+import "@/lib/markdown-styles.css";
 
 const PRODUCT_META: Record<
   ProductType,
-  { icon: typeof Monitor; label: string; color: string }
+  { icon: typeof Monitor; color: string }
 > = {
-  slides: { icon: Monitor, label: "Slides", color: "text-blue-500" },
-  video: { icon: Film, label: "Video", color: "text-purple-500" },
-  audio: { icon: Headphones, label: "Audio", color: "text-pink-500" },
-  infographic: { icon: Image, label: "Infographic", color: "text-teal-500" },
-  quiz: { icon: HelpCircle, label: "Quiz", color: "text-amber-500" },
-  flashcards: { icon: Layers, label: "Flashcards", color: "text-green-500" },
-  mind_map: {
-    icon: BrainCircuit,
-    label: "Mind Map",
-    color: "text-indigo-500",
-  },
+  slides: { icon: Monitor, color: "text-blue-500" },
+  video: { icon: Film, color: "text-purple-500" },
+  audio: { icon: Headphones, color: "text-pink-500" },
+  infographic: { icon: Image, color: "text-teal-500" },
+  quiz: { icon: HelpCircle, color: "text-amber-500" },
+  flashcards: { icon: Layers, color: "text-green-500" },
+  mind_map: { icon: BrainCircuit, color: "text-indigo-500" },
 };
 
 export default function ResultDashboard({ jobId }: { jobId: string }) {
+  const t = useT();
   const [job, setJob] = useState<JobStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -53,7 +54,6 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
           setJob(data);
           setLoading(false);
 
-          // If still generating, poll every 3s
           if (
             data.status === "generating_book" ||
             data.status === "generating_products"
@@ -87,7 +87,7 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-          {error || "Job not found"}
+          {error || t("result.not_found")}
         </div>
         <div className="mt-4 flex justify-center">
           <Link
@@ -95,7 +95,7 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
             className="btn-primary text-base flex items-center gap-2"
           >
             <PlusCircle size={18} />
-            Create New Book
+            {t("result.create_new")}
           </Link>
         </div>
       </div>
@@ -117,12 +117,13 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
               <h2 className="text-xl font-bold mb-1">{book.title}</h2>
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 <span>
-                  Topic: <strong className="text-foreground">{book.topic}</strong>
+                  {t("result.topic")}:{" "}
+                  <strong className="text-foreground">{book.topic}</strong>
                 </span>
                 <span>
-                  Language:{" "}
+                  {t("result.language")}:{" "}
                   <strong className="text-foreground">
-                    {book.language === "zh" ? "Chinese" : "English"}
+                    {t(`result.language.${book.language}`)}
                   </strong>
                 </span>
               </div>
@@ -134,12 +135,11 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
       {/* Products grid */}
       {job.products.length > 0 && (
         <section>
-          <h3 className="font-bold mb-3">Generated Products</h3>
+          <h3 className="font-bold mb-3">{t("result.products.title")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {job.products.map((product, i) => {
               const meta = PRODUCT_META[product.product_type] || {
                 icon: Monitor,
-                label: product.product_type,
                 color: "text-gray-500",
               };
               const Icon = meta.icon;
@@ -158,7 +158,11 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
                 >
                   <div
                     className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                      isComplete ? "bg-green-50" : isFailed ? "bg-red-50" : "bg-muted"
+                      isComplete
+                        ? "bg-green-50"
+                        : isFailed
+                          ? "bg-red-50"
+                          : "bg-muted"
                     }`}
                   >
                     <Icon
@@ -172,25 +176,27 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
                       }
                     />
                   </div>
-                  <span className="font-semibold text-sm">{meta.label}</span>
+                  <span className="font-semibold text-sm">
+                    {t(`product.${product.product_type}`)}
+                  </span>
 
                   {/* Status */}
                   {isComplete && (
                     <div className="flex items-center gap-1 text-xs text-green-600">
                       <CheckCircle2 size={14} />
-                      <span>Ready</span>
+                      <span>{t("result.status.ready")}</span>
                     </div>
                   )}
                   {isFailed && (
                     <div className="flex items-center gap-1 text-xs text-red-500">
                       <XCircle size={14} />
-                      <span>Failed</span>
+                      <span>{t("result.status.failed")}</span>
                     </div>
                   )}
                   {isGenerating && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Loader2 size={14} className="animate-spin" />
-                      <span>Generating...</span>
+                      <span>{t("result.status.generating")}</span>
                     </div>
                   )}
 
@@ -202,7 +208,7 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
                       className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition"
                     >
                       <Download size={14} />
-                      Download
+                      {t("result.download")}
                     </a>
                   )}
 
@@ -223,14 +229,16 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
       {book && (
         <section className="card p-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold">Story (Markdown)</h3>
+            <h3 className="font-bold">{t("result.story.title")}</h3>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowMarkdown((v) => !v)}
                 className="inline-flex items-center gap-1 text-sm text-primary font-semibold hover:underline"
               >
-                {showMarkdown ? "Hide" : "Preview"}
+                {showMarkdown
+                  ? t("result.story.hide")
+                  : t("result.story.preview")}
                 <ChevronDown
                   size={16}
                   className={`transition-transform ${showMarkdown ? "rotate-180" : ""}`}
@@ -242,14 +250,16 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20 transition"
               >
                 <Download size={14} />
-                Download .md
+                {t("result.story.download")}
               </a>
             </div>
           </div>
 
           {showMarkdown && (
-            <div className="mt-3 max-h-[500px] overflow-y-auto rounded-xl bg-muted p-5 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-              {book.markdown_content}
+            <div className="mt-3 max-h-[600px] overflow-y-auto rounded-xl bg-muted/50 p-5 text-sm prose-book">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {book.markdown_content}
+              </ReactMarkdown>
             </div>
           )}
         </section>
@@ -262,26 +272,19 @@ export default function ResultDashboard({ jobId }: { jobId: string }) {
           className="btn-primary text-base flex items-center gap-2"
         >
           <PlusCircle size={18} />
-          Create Another Book
+          {t("result.create_another")}
         </Link>
       </div>
     </div>
   );
 }
 
-/**
- * Convert an absolute file path from the backend to a /files/ URL.
- * Backend serves output/ as /files/ static mount.
- * e.g. "./output/ocean_20250305.md" -> "/files/ocean_20250305.md"
- */
 function toFileUrl(filePath: string): string {
-  // Extract filename from path (handle both ./output/x and output/x and /abs/path/output/x)
   const outputIdx = filePath.indexOf("output/");
   if (outputIdx !== -1) {
     const relative = filePath.slice(outputIdx + "output/".length);
     return `/files/${relative}`;
   }
-  // Fallback: just use the filename
   const parts = filePath.split("/");
   return `/files/${parts[parts.length - 1]}`;
 }

@@ -42,78 +42,50 @@ import {
   type InfographicDetail,
   type QuizDifficulty,
 } from "@/lib/api";
+import { motion } from "framer-motion";
+import { useI18n, useT } from "@/lib/i18n-provider";
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.4, ease: "easeOut" as const },
+  }),
+};
 
 // === Popular topics ===
 
 const POPULAR_TOPICS = [
-  { icon: Rocket, label: "Space", labelZh: "太空" },
-  { icon: Fish, label: "Ocean", labelZh: "海洋" },
-  { icon: Bug, label: "Dinosaurs", labelZh: "恐龙" },
-  { icon: TreePine, label: "Animals", labelZh: "动物" },
-  { icon: FlaskConical, label: "Science", labelZh: "科学实验" },
-  { icon: Crown, label: "Fairy Tales", labelZh: "童话故事" },
-  { icon: Globe, label: "Geography", labelZh: "地理" },
-  { icon: Sparkles, label: "Magic", labelZh: "魔法世界" },
+  { icon: Rocket, label: "Space", labelZh: "\u592a\u7a7a" },
+  { icon: Fish, label: "Ocean", labelZh: "\u6d77\u6d0b" },
+  { icon: Bug, label: "Dinosaurs", labelZh: "\u6050\u9f99" },
+  { icon: TreePine, label: "Animals", labelZh: "\u52a8\u7269" },
+  {
+    icon: FlaskConical,
+    label: "Science",
+    labelZh: "\u79d1\u5b66\u5b9e\u9a8c",
+  },
+  { icon: Crown, label: "Fairy Tales", labelZh: "\u7ae5\u8bdd\u6545\u4e8b" },
+  { icon: Globe, label: "Geography", labelZh: "\u5730\u7406" },
+  { icon: Sparkles, label: "Magic", labelZh: "\u9b54\u6cd5\u4e16\u754c" },
 ];
 
 // === Product definitions ===
 
-const PRODUCT_DEFS: {
-  type: ProductType;
-  icon: typeof Monitor;
-  label: string;
-  desc: string;
-}[] = [
-  {
-    type: "slides",
-    icon: Monitor,
-    label: "Slides",
-    desc: "Presentation deck",
-  },
-  { type: "video", icon: Film, label: "Video", desc: "Animated video" },
-  {
-    type: "audio",
-    icon: Headphones,
-    label: "Audio",
-    desc: "Podcast-style story",
-  },
-  {
-    type: "infographic",
-    icon: Image,
-    label: "Infographic",
-    desc: "Visual poster",
-  },
-  { type: "quiz", icon: HelpCircle, label: "Quiz", desc: "Knowledge check" },
-  {
-    type: "flashcards",
-    icon: Layers,
-    label: "Flashcards",
-    desc: "Study cards",
-  },
-  {
-    type: "mind_map",
-    icon: BrainCircuit,
-    label: "Mind Map",
-    desc: "Topic overview",
-  },
-];
-
-// === Video style options ===
-
-const VIDEO_STYLES: { value: VideoStyle; label: string }[] = [
-  { value: "kawaii", label: "Kawaii (Cute)" },
-  { value: "watercolor", label: "Watercolor" },
-  { value: "anime", label: "Anime" },
-  { value: "paper_craft", label: "Paper Craft" },
-  { value: "classic", label: "Classic" },
-  { value: "whiteboard", label: "Whiteboard" },
-  { value: "heritage", label: "Heritage" },
-  { value: "retro_print", label: "Retro Print" },
-  { value: "auto", label: "Auto" },
+const PRODUCT_KEYS: { type: ProductType; icon: typeof Monitor }[] = [
+  { type: "slides", icon: Monitor },
+  { type: "video", icon: Film },
+  { type: "audio", icon: Headphones },
+  { type: "infographic", icon: Image },
+  { type: "quiz", icon: HelpCircle },
+  { type: "flashcards", icon: Layers },
+  { type: "mind_map", icon: BrainCircuit },
 ];
 
 export default function CreateForm() {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const [book, setBook] = useState<GenerateRequest>({
     ...DEFAULT_BOOK_REQUEST,
   });
@@ -123,6 +95,8 @@ export default function CreateForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+
+  const isZh = locale === "zh";
 
   // Helpers
   const updateBook = (patch: Partial<GenerateRequest>) =>
@@ -143,13 +117,12 @@ export default function CreateForm() {
   const handleSubmit = async () => {
     setError("");
 
-    // Client-side validation
     if (book.content_mode === "topic" && !book.topic.trim()) {
-      setError("Please select or enter a topic.");
+      setError(t("error.topic.required"));
       return;
     }
     if (book.content_mode === "story" && !book.story_text.trim()) {
-      setError("Please enter your story text.");
+      setError(t("error.story.required"));
       return;
     }
 
@@ -166,30 +139,34 @@ export default function CreateForm() {
     }
   };
 
-  const isZh = book.language === "zh";
-
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* ====== Card A: About Your Child ====== */}
-      <section className="card p-6">
+      <motion.section
+        className="card p-6"
+        initial="hidden"
+        animate="visible"
+        custom={0}
+        variants={cardVariants}
+      >
         <div className="flex items-center gap-2 mb-5">
           <User size={20} className="text-primary" />
-          <h2 className="text-lg font-bold">About Your Child</h2>
+          <h2 className="text-lg font-bold">{t("create.child.title")}</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Name */}
           <div>
             <label className="block text-sm font-semibold mb-1.5">
-              Nickname{" "}
+              {t("create.child.name")}{" "}
               <span className="text-muted-foreground font-normal">
-                (optional)
+                {t("create.child.name.optional")}
               </span>
             </label>
             <input
               type="text"
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-              placeholder="e.g. Luna"
+              placeholder={t("create.child.name.placeholder")}
               value={book.child_name}
               onChange={(e) => updateBook({ child_name: e.target.value })}
             />
@@ -198,16 +175,16 @@ export default function CreateForm() {
           {/* Gender */}
           <div>
             <label className="block text-sm font-semibold mb-1.5">
-              Gender
+              {t("create.child.gender")}
             </label>
             <div className="flex gap-2">
               {(
                 [
-                  ["boy", "Boy"],
-                  ["girl", "Girl"],
-                  ["unspecified", "Any"],
+                  ["boy", "create.child.gender.boy"],
+                  ["girl", "create.child.gender.girl"],
+                  ["unspecified", "create.child.gender.any"],
                 ] as const
-              ).map(([val, label]) => (
+              ).map(([val, key]) => (
                 <button
                   key={val}
                   type="button"
@@ -218,7 +195,7 @@ export default function CreateForm() {
                       : "border-border hover:border-primary/40"
                   }`}
                 >
-                  {label}
+                  {t(key)}
                 </button>
               ))}
             </div>
@@ -227,7 +204,7 @@ export default function CreateForm() {
           {/* Age Range */}
           <div>
             <label className="block text-sm font-semibold mb-1.5">
-              Age Range: {book.age_min} - {book.age_max}
+              {t("create.child.age")}: {book.age_min} - {book.age_max}
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -244,7 +221,9 @@ export default function CreateForm() {
                 }}
                 className="flex-1 accent-primary"
               />
-              <span className="text-sm text-muted-foreground">to</span>
+              <span className="text-sm text-muted-foreground">
+                {t("create.child.age.to")}
+              </span>
               <input
                 type="range"
                 min={3}
@@ -265,13 +244,13 @@ export default function CreateForm() {
           {/* Language */}
           <div>
             <label className="block text-sm font-semibold mb-1.5">
-              Language
+              {t("create.child.lang")}
             </label>
             <div className="flex gap-2">
               {(
                 [
                   ["en", "English"],
-                  ["zh", "中文"],
+                  ["zh", "\u4e2d\u6587"],
                 ] as const
               ).map(([val, label]) => (
                 <button
@@ -290,23 +269,29 @@ export default function CreateForm() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ====== Card B: Content ====== */}
-      <section className="card p-6">
+      <motion.section
+        className="card p-6"
+        initial="hidden"
+        animate="visible"
+        custom={1}
+        variants={cardVariants}
+      >
         <div className="flex items-center gap-2 mb-5">
           <Palette size={20} className="text-secondary" />
-          <h2 className="text-lg font-bold">Content</h2>
+          <h2 className="text-lg font-bold">{t("create.content.title")}</h2>
         </div>
 
         {/* Content mode tabs */}
         <div className="flex gap-1 mb-5 bg-muted p-1 rounded-xl">
           {(
             [
-              ["topic", "Choose a Topic"],
-              ["story", "Tell Your Own Story"],
+              ["topic", "create.content.topic.tab"],
+              ["story", "create.content.story.tab"],
             ] as const
-          ).map(([mode, label]) => (
+          ).map(([mode, key]) => (
             <button
               key={mode}
               type="button"
@@ -317,7 +302,7 @@ export default function CreateForm() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {label}
+              {t(key)}
             </button>
           ))}
         </div>
@@ -352,16 +337,14 @@ export default function CreateForm() {
             {/* Free-form topic input */}
             <div>
               <label className="block text-sm font-semibold mb-1.5">
-                Or enter your own topic
+                {t("create.content.topic.custom")}
               </label>
               <input
                 type="text"
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-                placeholder={
-                  isZh ? "例如：中国历史、恐龙、外太空" : "e.g. Volcanoes, Robots, Pirates"
-                }
+                placeholder={t("create.content.topic.placeholder")}
                 value={
-                  POPULAR_TOPICS.some((t) => t.label === book.topic)
+                  POPULAR_TOPICS.some((tp) => tp.label === book.topic)
                     ? ""
                     : book.topic
                 }
@@ -373,15 +356,11 @@ export default function CreateForm() {
           /* Story mode: text area */
           <div>
             <label className="block text-sm font-semibold mb-1.5">
-              Your Story
+              {t("create.content.story.label")}
             </label>
             <textarea
               className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition min-h-[160px] resize-y"
-              placeholder={
-                isZh
-                  ? "在这里输入或粘贴你的故事，AI 会帮你润色并适配孩子的年龄段..."
-                  : "Paste or type your story here. AI will adapt it for your child's age..."
-              }
+              placeholder={t("create.content.story.placeholder")}
               value={book.story_text}
               onChange={(e) => updateBook({ story_text: e.target.value })}
             />
@@ -391,7 +370,7 @@ export default function CreateForm() {
         {/* Chapters */}
         <div className="mt-5">
           <label className="block text-sm font-semibold mb-1.5">
-            Chapters: {book.chapters}
+            {t("create.content.chapters")}: {book.chapters}
           </label>
           <input
             type="range"
@@ -402,24 +381,30 @@ export default function CreateForm() {
             className="w-full accent-primary"
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>3 (short)</span>
-            <span>10 (detailed)</span>
+            <span>{t("create.content.chapters.short")}</span>
+            <span>{t("create.content.chapters.detailed")}</span>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ====== Card C: Output Products ====== */}
-      <section className="card p-6">
+      <motion.section
+        className="card p-6"
+        initial="hidden"
+        animate="visible"
+        custom={2}
+        variants={cardVariants}
+      >
         <div className="flex items-center gap-2 mb-2">
           <Package size={20} className="text-accent" />
-          <h2 className="text-lg font-bold">Output Products</h2>
+          <h2 className="text-lg font-bold">{t("create.products.title")}</h2>
         </div>
         <p className="text-sm text-muted-foreground mb-5">
-          Select what to generate. Each product is created via NotebookLM.
+          {t("create.products.desc")}
         </p>
 
         <div className="space-y-3">
-          {PRODUCT_DEFS.map(({ type, icon: Icon, label, desc }) => {
+          {PRODUCT_KEYS.map(({ type, icon: Icon }) => {
             const selected = book.products.includes(type);
             const expanded = expandedProduct === type;
             return (
@@ -455,15 +440,17 @@ export default function CreateForm() {
                   </button>
                   <Icon size={20} className="text-muted-foreground" />
                   <div className="flex-1">
-                    <span className="font-semibold text-sm">{label}</span>
+                    <span className="font-semibold text-sm">
+                      {t(`product.${type}`)}
+                    </span>
                     <span className="text-muted-foreground text-xs ml-2">
-                      {desc}
+                      {t(`product.${type}.desc`)}
                     </span>
                   </div>
-                  {/* Expand options (only for types with options) */}
+                  {/* Expand options */}
                   {selected &&
                     ["slides", "video", "audio", "infographic", "quiz"].includes(
-                      type
+                      type,
                     ) && (
                       <button
                         type="button"
@@ -494,7 +481,7 @@ export default function CreateForm() {
             );
           })}
         </div>
-      </section>
+      </motion.section>
 
       {/* ====== Error ====== */}
       {error && (
@@ -511,7 +498,7 @@ export default function CreateForm() {
           disabled={submitting}
           className="btn-primary text-lg px-12 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? "Creating..." : "Create Picture Book"}
+          {submitting ? t("create.submitting") : t("create.submit")}
         </button>
       </div>
     </div>
@@ -529,6 +516,7 @@ function ProductOptionsPanel({
   opts: ProductOptions;
   setOpts: React.Dispatch<React.SetStateAction<ProductOptions>>;
 }) {
+  const t = useT();
   const selectClass =
     "px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
 
@@ -536,7 +524,9 @@ function ProductOptionsPanel({
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold mb-1">Format</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.format")}
+          </label>
           <select
             className={selectClass}
             value={opts.slides.slide_format}
@@ -550,12 +540,14 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="detailed">Detailed</option>
-            <option value="presenter">Presenter</option>
+            <option value="detailed">{t("option.detailed")}</option>
+            <option value="presenter">{t("option.presenter")}</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1">Length</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.length")}
+          </label>
           <select
             className={selectClass}
             value={opts.slides.slide_length}
@@ -569,8 +561,8 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="default">Default</option>
-            <option value="short">Short</option>
+            <option value="default">{t("option.default")}</option>
+            <option value="short">{t("option.short")}</option>
           </select>
         </div>
       </div>
@@ -581,7 +573,9 @@ function ProductOptionsPanel({
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold mb-1">Style</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.style")}
+          </label>
           <select
             className={selectClass}
             value={opts.video.video_style}
@@ -595,15 +589,29 @@ function ProductOptionsPanel({
               }))
             }
           >
-            {VIDEO_STYLES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
+            {(
+              [
+                "kawaii",
+                "watercolor",
+                "anime",
+                "paper_craft",
+                "classic",
+                "whiteboard",
+                "heritage",
+                "retro_print",
+                "auto",
+              ] as const
+            ).map((s) => (
+              <option key={s} value={s}>
+                {t(`video.${s}`)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1">Format</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.format")}
+          </label>
           <select
             className={selectClass}
             value={opts.video.video_format}
@@ -617,8 +625,8 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="explainer">Explainer</option>
-            <option value="brief">Brief</option>
+            <option value="explainer">{t("option.explainer")}</option>
+            <option value="brief">{t("option.brief")}</option>
           </select>
         </div>
       </div>
@@ -629,7 +637,9 @@ function ProductOptionsPanel({
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold mb-1">Format</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.format")}
+          </label>
           <select
             className={selectClass}
             value={opts.audio.audio_format}
@@ -643,14 +653,16 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="deep_dive">Deep Dive</option>
-            <option value="brief">Brief</option>
-            <option value="critique">Critique</option>
-            <option value="debate">Debate</option>
+            <option value="deep_dive">{t("option.deep_dive")}</option>
+            <option value="brief">{t("option.brief")}</option>
+            <option value="critique">{t("option.critique")}</option>
+            <option value="debate">{t("option.debate")}</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1">Length</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.length")}
+          </label>
           <select
             className={selectClass}
             value={opts.audio.audio_length}
@@ -664,9 +676,9 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="short">Short (~5 min)</option>
-            <option value="default">Default (~15 min)</option>
-            <option value="long">Long (~25 min)</option>
+            <option value="short">{t("audio.short")}</option>
+            <option value="default">{t("audio.default")}</option>
+            <option value="long">{t("audio.long")}</option>
           </select>
         </div>
       </div>
@@ -678,7 +690,7 @@ function ProductOptionsPanel({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold mb-1">
-            Orientation
+            {t("option.orientation")}
           </label>
           <select
             className={selectClass}
@@ -693,13 +705,15 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="landscape">Landscape</option>
-            <option value="portrait">Portrait</option>
-            <option value="square">Square</option>
+            <option value="landscape">{t("option.landscape")}</option>
+            <option value="portrait">{t("option.portrait")}</option>
+            <option value="square">{t("option.square")}</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1">Detail</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.detail")}
+          </label>
           <select
             className={selectClass}
             value={opts.infographic.detail_level}
@@ -713,9 +727,9 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="concise">Concise</option>
-            <option value="standard">Standard</option>
-            <option value="detailed">Detailed</option>
+            <option value="concise">{t("option.concise")}</option>
+            <option value="standard">{t("option.standard")}</option>
+            <option value="detailed">{t("option.detailed")}</option>
           </select>
         </div>
       </div>
@@ -727,7 +741,7 @@ function ProductOptionsPanel({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold mb-1">
-            Difficulty
+            {t("option.difficulty")}
           </label>
           <select
             className={selectClass}
@@ -742,25 +756,30 @@ function ProductOptionsPanel({
               }))
             }
           >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
+            <option value="easy">{t("option.easy")}</option>
+            <option value="medium">{t("option.medium")}</option>
+            <option value="hard">{t("option.hard")}</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1">Quantity</label>
+          <label className="block text-xs font-semibold mb-1">
+            {t("option.quantity")}
+          </label>
           <select
             className={selectClass}
             value={opts.quiz.quantity}
             onChange={(e) =>
               setOpts((p) => ({
                 ...p,
-                quiz: { ...p.quiz, quantity: e.target.value as "fewer" | "standard" },
+                quiz: {
+                  ...p.quiz,
+                  quantity: e.target.value as "fewer" | "standard",
+                },
               }))
             }
           >
-            <option value="fewer">Fewer</option>
-            <option value="standard">Standard</option>
+            <option value="fewer">{t("option.fewer")}</option>
+            <option value="standard">{t("option.standard")}</option>
           </select>
         </div>
       </div>

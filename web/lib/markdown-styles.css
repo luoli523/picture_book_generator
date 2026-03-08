@@ -1,0 +1,126 @@
+/* Markdown rendered content styles */
+.prose-book {
+  line-height: 1.8;
+  color: var(--foreground);
+}
+
+.prose-book h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--foreground);
+}
+
+.prose-book h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.prose-book h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+
+.prose-book p {
+  margin-bottom: 0.75rem;
+}
+
+.prose-book ul,
+.prose-book ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.prose-book li {
+  margin-bottom: 0.25rem;
+}
+
+.prose-book ul li {
+  list-style-type: disc;
+}
+
+.prose-book ol li {
+  list-style-type: decimal;
+}
+
+.prose-book strong {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.prose-book em {
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+.prose-book blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.prose-book code {
+  background: var(--muted);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-family: ui-monospace, monospace;
+}
+
+.prose-book pre {
+  background: var(--muted);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+
+.prose-book pre code {
+  background: none;
+  padding: 0;
+}
+
+.prose-book hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+.prose-book a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-book a:hover {
+  color: var(--primary-hover);
+}
+
+.prose-book table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.prose-book th,
+.prose-book td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.prose-book th {
+  background: var(--muted);
+  font-weight: 700;
+}

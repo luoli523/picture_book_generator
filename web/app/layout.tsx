@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import { I18nProvider, NavBar } from "@/lib/i18n-provider";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -20,8 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh">
-      <body className={`${nunito.variable} antialiased`}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${nunito.variable} antialiased`}>
+        <I18nProvider>
+          <NavBar />
+          <main>{children}</main>
+        </I18nProvider>
+      </body>
     </html>
   );
 }

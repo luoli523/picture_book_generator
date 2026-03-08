@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Disable compression so SSE streams are not gzip-buffered
+  compress: false,
   // Proxy API requests to FastAPI backend during development
   async rewrites() {
     return [

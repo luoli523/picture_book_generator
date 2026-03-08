@@ -48,6 +48,10 @@ htmlcov/
 # Node / Next.js
 node_modules/
 .next/
+!web/lib/
+
+# Dev tools
+.dev/
 
 # OS
 .DS_Store

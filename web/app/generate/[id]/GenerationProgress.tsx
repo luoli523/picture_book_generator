@@ -12,6 +12,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import type { SSEEvent } from "@/lib/api";
+import { useT } from "@/lib/i18n-provider";
 
 interface Step {
   message: string;
@@ -24,6 +25,7 @@ interface BookPreview {
 }
 
 export default function GenerationProgress({ jobId }: { jobId: string }) {
+  const t = useT();
   const [steps, setSteps] = useState<Step[]>([]);
   const [bookPreview, setBookPreview] = useState<BookPreview | null>(null);
   const [finished, setFinished] = useState(false);
@@ -36,9 +38,8 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
 
     const addStep = (message: string, status: Step["status"]) => {
       setSteps((prev) => {
-        // Mark previous active step as done
         const updated = prev.map((s) =>
-          s.status === "active" ? { ...s, status: "done" as const } : s
+          s.status === "active" ? { ...s, status: "done" as const } : s,
         );
         return [...updated, { message, status }];
       });
@@ -58,10 +59,9 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
           break;
 
         case "book_title":
-          // Mark previous as done, add this as done
           setSteps((prev) => {
             const updated = prev.map((s) =>
-              s.status === "active" ? { ...s, status: "done" as const } : s
+              s.status === "active" ? { ...s, status: "done" as const } : s,
             );
             return [
               ...updated,
@@ -79,8 +79,8 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
         case "book_complete":
           setSteps((prev) =>
             prev.map((s) =>
-              s.status === "active" ? { ...s, status: "done" as const } : s
-            )
+              s.status === "active" ? { ...s, status: "done" as const } : s,
+            ),
           );
           break;
 
@@ -91,8 +91,8 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
         case "product_complete":
           setSteps((prev) =>
             prev.map((s) =>
-              s.status === "active" ? { ...s, status: "done" as const } : s
-            )
+              s.status === "active" ? { ...s, status: "done" as const } : s,
+            ),
           );
           break;
 
@@ -101,8 +101,8 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
             prev.map((s) =>
               s.status === "active"
                 ? { ...s, status: "warning" as const }
-                : s
-            )
+                : s,
+            ),
           );
           break;
 
@@ -113,8 +113,8 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
         case "error":
           setSteps((prev) =>
             prev.map((s) =>
-              s.status === "active" ? { ...s, status: "error" as const } : s
-            )
+              s.status === "active" ? { ...s, status: "error" as const } : s,
+            ),
           );
           addStep(event.message, "error");
           setFailed(true);
@@ -125,8 +125,8 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
         case "done":
           setSteps((prev) =>
             prev.map((s) =>
-              s.status === "active" ? { ...s, status: "done" as const } : s
-            )
+              s.status === "active" ? { ...s, status: "done" as const } : s,
+            ),
           );
           setFinished(true);
           eventSource.close();
@@ -135,16 +135,15 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
     };
 
     eventSource.onerror = () => {
-      // SSE connection lost — check status via polling fallback
       eventSource.close();
       setFailed(true);
-      setErrorMsg("Connection lost. Please check the job status.");
+      setErrorMsg(t("progress.connection_lost"));
     };
 
     return () => {
       eventSource.close();
     };
-  }, [jobId]);
+  }, [jobId, t]);
 
   // Auto-scroll to bottom on new steps
   useEffect(() => {
@@ -170,7 +169,7 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
 
       {/* Progress steps */}
       <div className="card p-6">
-        <h3 className="font-bold mb-4">Generation Progress</h3>
+        <h3 className="font-bold mb-4">{t("progress.title")}</h3>
         <div className="space-y-3">
           {steps.map((step, i) => (
             <div key={i} className="flex items-start gap-3">
@@ -196,7 +195,7 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
             <div className="flex items-center gap-3 pt-2">
               <Loader2 size={16} className="animate-spin text-primary" />
               <span className="text-sm text-muted-foreground">
-                Working on it...
+                {t("progress.working")}
               </span>
             </div>
           )}
@@ -204,10 +203,10 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Fun tips while waiting */}
+      {/* Tip while waiting */}
       {!finished && !failed && (
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          <p>This may take a few minutes. NotebookLM products can take 2-5 minutes each.</p>
+          <p>{t("progress.tip")}</p>
         </div>
       )}
 
@@ -219,7 +218,7 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
               href={`/result/${jobId}`}
               className="btn-primary text-base flex items-center gap-2"
             >
-              View Results
+              {t("progress.view_results")}
               <ArrowRight size={18} />
             </Link>
           )}
@@ -229,7 +228,7 @@ export default function GenerationProgress({ jobId }: { jobId: string }) {
               className="btn-primary text-base flex items-center gap-2"
             >
               <RotateCcw size={18} />
-              Try Again
+              {t("progress.try_again")}
             </Link>
           )}
         </div>
